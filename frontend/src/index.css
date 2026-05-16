@@ -1,0 +1,243 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-uvg-bg text-uvg-text font-sans text-base;
+  }
+
+  /* Inputs y selects sin outline por defecto — lo manejamos nosotros */
+  input, select, textarea {
+    @apply outline-none;
+  }
+
+  /* Scrollbar discreta en webkit */
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb  { @apply bg-uvg-border rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-uvg-border-strong; }
+}
+
+/* ─── Botones ────────────────────────────────────────────────────────────── */
+@layer components {
+
+  /* CTA principal — verde profundo, texto blanco */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-uvg-green text-white
+           px-5 py-2.5 rounded text-sm font-medium tracking-wide
+           transition-colors duration-150
+           hover:bg-uvg-green-dark
+           disabled:opacity-40 disabled:cursor-not-allowed
+           active:scale-[0.98];
+  }
+
+  /* Botón secundario — borde visible, sin background */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           border border-uvg-border text-uvg-text bg-uvg-surface
+           px-5 py-2.5 rounded text-sm font-medium
+           transition-colors duration-150
+           hover:border-uvg-border-strong hover:bg-uvg-bg
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  /* Acción destructiva — rojo, contenido */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5
+           border border-red-200 text-red-600
+           px-3 py-1.5 rounded-sm text-xs font-medium
+           transition-colors duration-150
+           hover:bg-red-50 hover:border-red-300;
+  }
+
+  /* Ghost — para acciones de navegación sin peso visual */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           text-uvg-muted text-sm font-medium
+           px-3 py-2 rounded
+           transition-colors duration-150
+           hover:text-uvg-text hover:bg-uvg-bg;
+  }
+
+/* ─── Cards ──────────────────────────────────────────────────────────────── */
+
+  /* Contenedor base — borde 1px, sin shadow */
+  .card {
+    @apply bg-uvg-surface border border-uvg-border rounded-md p-5;
+  }
+
+  /* Variante con padding más generoso */
+  .card-lg {
+    @apply bg-uvg-surface border border-uvg-border rounded-md p-6;
+  }
+
+  /* Card interactiva — para listas clickeables */
+  .card-interactive {
+    @apply bg-uvg-surface border border-uvg-border rounded-md p-5
+           transition-colors duration-150 cursor-pointer
+           hover:border-uvg-border-strong hover:bg-[#F6F6F3];
+  }
+
+/* ─── Formularios ────────────────────────────────────────────────────────── */
+
+  .form-label {
+    @apply block text-sm font-medium text-uvg-text mb-1.5;
+  }
+
+  .form-hint {
+    @apply block text-xs text-uvg-muted mt-1;
+  }
+
+  /* Input base — transición solo en border, sin ring glow */
+  .form-input {
+    @apply w-full bg-uvg-surface border border-uvg-border rounded px-3 py-2.5
+           text-sm text-uvg-text placeholder:text-uvg-subtle
+           transition-colors duration-150
+           focus:border-uvg-green
+           disabled:bg-uvg-bg disabled:text-uvg-muted disabled:cursor-not-allowed;
+  }
+
+  /* Select con flecha custom */
+  .form-select {
+    @apply form-input appearance-none cursor-pointer
+           bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6B66' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")]
+           bg-no-repeat bg-[right_12px_center] pr-9;
+  }
+
+/* ─── Badges / Chips ─────────────────────────────────────────────────────── */
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5
+           rounded-sm text-2xs font-medium tracking-wide;
+  }
+
+  /* Verde suave — para nivel Avanzado, estados positivos */
+  .badge-green {
+    @apply badge bg-uvg-green-light text-uvg-green-mid;
+  }
+
+  /* Gris neutro — para chips de cursos, nivel Básico */
+  .badge-gray {
+    @apply badge bg-[#EFEFEC] text-uvg-muted;
+  }
+
+  /* Azul — para nivel Intermedio, modalidad virtual */
+  .badge-blue {
+    @apply badge bg-blue-50 text-blue-700;
+  }
+
+  /* Chip eliminable — badge con × */
+  .chip {
+    @apply inline-flex items-center gap-1.5
+           px-3 py-1 rounded-sm text-sm
+           bg-[#EFEFEC] text-uvg-text border border-uvg-border;
+  }
+
+/* ─── Divisores y separadores ────────────────────────────────────────────── */
+
+  .divider {
+    @apply border-t border-uvg-border;
+  }
+
+/* ─── Tipografía utilitaria ──────────────────────────────────────────────── */
+
+  /* Heading principal de página */
+  .heading-page {
+    @apply text-2xl font-semibold text-uvg-text tracking-tight;
+  }
+
+  /* Heading de sección dentro de una card */
+  .heading-section {
+    @apply text-base font-semibold text-uvg-text;
+  }
+
+  /* Label de metadato (sobre un valor) */
+  .label-meta {
+    @apply text-xs font-medium text-uvg-muted uppercase tracking-wider;
+  }
+
+  /* Número/precio con monospace */
+  .num {
+    @apply font-mono;
+  }
+
+/* ─── Tablas ─────────────────────────────────────────────────────────────── */
+
+  .table-base {
+    @apply w-full text-sm;
+  }
+
+  .table-base thead tr {
+    @apply border-b border-uvg-border;
+  }
+
+  .table-base th {
+    @apply pb-2.5 text-left text-xs font-medium text-uvg-muted;
+  }
+
+  .table-base td {
+    @apply py-3 border-b border-uvg-border last:border-0;
+  }
+
+  .table-base tbody tr:last-child td {
+    @apply border-0;
+  }
+
+/* ─── Tabs de navegación ─────────────────────────────────────────────────── */
+
+  .tab-bar {
+    @apply flex border-b border-uvg-border;
+  }
+
+  .tab-item {
+    @apply px-4 py-2.5 text-sm font-medium border-b-2 -mb-px
+           transition-colors duration-150;
+  }
+
+  .tab-item-active {
+    @apply tab-item border-uvg-green text-uvg-green;
+  }
+
+  .tab-item-inactive {
+    @apply tab-item border-transparent text-uvg-muted hover:text-uvg-text hover:border-uvg-border;
+  }
+
+/* ─── Mensajes de estado ─────────────────────────────────────────────────── */
+
+  .alert-success {
+    @apply flex items-start gap-3
+           bg-uvg-green-light border border-uvg-green-light text-uvg-green-mid
+           rounded px-4 py-3 text-sm;
+  }
+
+  .alert-error {
+    @apply flex items-start gap-3
+           bg-red-50 border border-red-200 text-red-700
+           rounded px-4 py-3 text-sm;
+  }
+
+/* ─── Empty state ────────────────────────────────────────────────────────── */
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center
+           text-center py-16 px-6;
+  }
+
+  .empty-state-title {
+    @apply text-base font-medium text-uvg-text mt-3;
+  }
+
+  .empty-state-body {
+    @apply text-sm text-uvg-muted mt-1 max-w-xs;
+  }
+
+} /* end @layer components */
