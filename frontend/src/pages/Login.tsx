@@ -18,7 +18,8 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', { email, password })
       setAuth(data)
-      navigate(data.role === 'ESTUDIANTE' ? '/estudiante' : '/tutor')
+      if (data.role === 'TUTOR') navigate('/tutor')
+      else navigate(data.onboardingCompleto ? '/estudiante' : '/onboarding')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Credenciales incorrectas')
     } finally {

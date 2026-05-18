@@ -1,28 +1,38 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Onboarding from './pages/Onboarding'
 import StudentDashboard from './pages/StudentDashboard'
 import TutorDashboard from './pages/TutorDashboard'
 
 function RootRedirect() {
-  const { token, role } = useAuthStore()
+  const { token, role, onboardingCompleto } = useAuthStore()
   if (!token) return <Navigate to="/login" replace />
+  if (role === 'ESTUDIANTE' && !onboardingCompleto) return <Navigate to="/onboarding" replace />
   return <Navigate to={role === 'ESTUDIANTE' ? '/estudiante' : '/tutor'} replace />
 }
 
-export default function App() {
+// Navbar sólo fuera del onboarding (necesita estar dentro de BrowserRouter para useLocation)
+function AppShell() {
   const { token } = useAuthStore()
+  const { pathname } = useLocation()
+  const showNavbar = token && pathname !== '/onboarding'
 
   return (
-    <BrowserRouter>
-      {token && <Navbar />}
+    <>
+      {showNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/onboarding" element={
+          <ProtectedRoute role="ESTUDIANTE">
+            <Onboarding />
+          </ProtectedRoute>
+        } />
         <Route path="/estudiante" element={
           <ProtectedRoute role="ESTUDIANTE">
             <StudentDashboard />
@@ -35,6 +45,14 @@ export default function App() {
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
     </BrowserRouter>
   )
 }

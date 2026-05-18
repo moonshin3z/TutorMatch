@@ -22,7 +22,6 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     public AuthResponse login(LoginRequest req) {
-        // Try student first
         var estudiante = estudianteRepo.findByEmail(req.getEmail());
         if (estudiante.isPresent()) {
             Estudiante e = estudiante.get();
@@ -31,11 +30,11 @@ public class AuthService {
             }
             return new AuthResponse(
                 jwtUtil.generateToken(e.getId(), "ESTUDIANTE"),
-                "ESTUDIANTE", e.getId(), e.getNombre(), e.getEmail()
+                "ESTUDIANTE", e.getId(), e.getNombre(), e.getEmail(),
+                e.isOnboardingCompleto()
             );
         }
 
-        // Try tutor
         var tutor = tutorRepo.findByEmail(req.getEmail());
         if (tutor.isPresent()) {
             Tutor t = tutor.get();
@@ -44,7 +43,8 @@ public class AuthService {
             }
             return new AuthResponse(
                 jwtUtil.generateToken(t.getId(), "TUTOR"),
-                "TUTOR", t.getId(), t.getNombre(), t.getEmail()
+                "TUTOR", t.getId(), t.getNombre(), t.getEmail(),
+                true
             );
         }
 
@@ -61,10 +61,12 @@ public class AuthService {
         e.setPassword(encoder.encode(req.getPassword()));
         e.setCarrera(req.getCarrera());
         e.setSemestre(req.getSemestre());
+        e.setOnboardingCompleto(false);
         e = estudianteRepo.save(e);
         return new AuthResponse(
             jwtUtil.generateToken(e.getId(), "ESTUDIANTE"),
-            "ESTUDIANTE", e.getId(), e.getNombre(), e.getEmail()
+            "ESTUDIANTE", e.getId(), e.getNombre(), e.getEmail(),
+            false
         );
     }
 
@@ -81,7 +83,8 @@ public class AuthService {
         t = tutorRepo.save(t);
         return new AuthResponse(
             jwtUtil.generateToken(t.getId(), "TUTOR"),
-            "TUTOR", t.getId(), t.getNombre(), t.getEmail()
+            "TUTOR", t.getId(), t.getNombre(), t.getEmail(),
+            true
         );
     }
 }
