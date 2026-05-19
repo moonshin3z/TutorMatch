@@ -16,6 +16,7 @@ public class RecomendacionDTO {
 
     // Campos enriquecidos — Fase 2
     private List<String> matchReasons;
+    private List<String> cursosCodigos;
     private double precio;
     private String modalidad;
     private String bio;

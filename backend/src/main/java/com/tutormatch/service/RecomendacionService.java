@@ -61,6 +61,7 @@ public class RecomendacionService {
               coalesce(nt.nombre, 'No especificado')                               AS nivel,
               coalesce(nb.nombre, '')                                               AS nivelBuscado,
               [c IN cursos_match | c.nombre]                                       AS cursos,
+              [c IN cursos_match | c.codigo]                                       AS cursosCodigos,
               [h IN horarios_comunes | h.dia + ' ' + h.horaInicio + '-' + h.horaFin] AS horarios,
               coalesce(t.bio, '')                                                   AS bio,
               coalesce(t.precio, 0.0)                                              AS precio,
@@ -109,9 +110,11 @@ public class RecomendacionService {
         dto.setModalidad((String) row.get("modalidad"));
         dto.setFotoUrl((String) row.get("fotoUrl"));
 
-        List<String> cursos   = (List<String>) row.get("cursos");
-        List<String> horarios = (List<String>) row.get("horarios");
+        List<String> cursos        = (List<String>) row.get("cursos");
+        List<String> cursosCodigos = (List<String>) row.get("cursosCodigos");
+        List<String> horarios      = (List<String>) row.get("horarios");
         dto.setCursos(cursos);
+        dto.setCursosCodigos(cursosCodigos);
         dto.setHorarios(horarios);
         dto.setScore(toInt(row.get("score")));
 
