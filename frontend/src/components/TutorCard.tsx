@@ -135,7 +135,9 @@ export default function TutorCard({ tutor, highlight }: Props) {
       {/* ── Footer ── */}
       <div className="px-4 pb-4">
         <button
-          onClick={() => navigate(`/tutor/${tutor.id}`)}
+          onClick={() => navigate(`/tutor/${tutor.id}`, {
+            state: { matchReasons: tutor.matchReasons, score: tutor.score }
+          })}
           className="w-full btn-secondary text-xs py-2"
         >
           Ver perfil completo →
