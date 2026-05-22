@@ -14,6 +14,11 @@ public class RecomendacionDTO {
     private List<String> horarios;
     private int score;
 
+    // Identidad académica del tutor — Fase A
+    private String carrera;
+    private int semestre;
+    private String emailTutor;
+
     // Campos enriquecidos — Fase 2
     private List<String> matchReasons;
     private List<String> cursosCodigos;

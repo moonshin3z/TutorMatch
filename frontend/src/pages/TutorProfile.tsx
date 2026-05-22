@@ -7,6 +7,9 @@ import { useAuthStore } from '../store/authStore'
 interface Tutor {
   id: number
   nombre: string
+  email: string
+  carrera: string
+  semestre: number
   bio: string
   rating: number
   totalReviews: number
@@ -117,8 +120,11 @@ export default function TutorProfile() {
   const [submitting, setSubmitting]   = useState(false)
   const [reviewSent, setReviewSent]   = useState(false)
 
-  // Estado del botón "Solicitar tutoría"
-  const [solicitado, setSolicitado]   = useState(false)
+  // Estado del botón "Solicitar tutoría" — persiste en localStorage
+  const storageKey = `tm_solicitado_${id}`
+  const [solicitado, setSolicitado] = useState(
+    () => localStorage.getItem(storageKey) === 'true'
+  )
 
   const fetchData = async () => {
     const [tutorRes, reviewsRes] = await Promise.all([
@@ -157,6 +163,7 @@ export default function TutorProfile() {
 
   const solicitarTutoria = async () => {
     await api.post(`/recomendaciones/${userId}/recomendar/${id}`)
+    localStorage.setItem(storageKey, 'true')
     setSolicitado(true)
   }
 
@@ -202,9 +209,16 @@ export default function TutorProfile() {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-uvg-text leading-tight">{tutor.nombre}</h1>
 
-            {tutor.experiencia > 0 && (
+            {/* Carrera y semestre — identidad académica */}
+            {tutor.carrera && (
               <p className="text-xs text-uvg-muted mt-0.5">
-                {tutor.experiencia} año{tutor.experiencia !== 1 ? 's' : ''} de experiencia
+                {tutor.carrera}
+                {tutor.semestre > 0 && ` · ${tutor.semestre}° semestre`}
+              </p>
+            )}
+            {tutor.experiencia > 0 && (
+              <p className="text-xs text-uvg-subtle mt-0.5">
+                {tutor.experiencia} año{tutor.experiencia !== 1 ? 's' : ''} dando tutorías
               </p>
             )}
 
@@ -237,9 +251,9 @@ export default function TutorProfile() {
           </p>
         )}
 
-        {/* CTA solicitar tutoría — solo estudiantes */}
+        {/* CTAs — solo estudiantes */}
         {isStudent && (
-          <div className="mt-4 pt-4 border-t border-uvg-border">
+          <div className="mt-4 pt-4 border-t border-uvg-border flex flex-col gap-2">
             <button
               onClick={solicitarTutoria}
               disabled={solicitado}
@@ -247,6 +261,14 @@ export default function TutorProfile() {
             >
               {solicitado ? '✓ Tutor guardado en tu lista' : 'Solicitar tutoría'}
             </button>
+            {tutor.email && (
+              <a
+                href={`mailto:${tutor.email}?subject=Solicitud de tutoría — TutorMatch UVG`}
+                className="btn-secondary w-full text-center text-sm"
+              >
+                Contactar por correo → {tutor.email}
+              </a>
+            )}
           </div>
         )}
       </div>

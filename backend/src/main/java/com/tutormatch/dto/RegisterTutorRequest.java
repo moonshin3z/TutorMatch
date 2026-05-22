@@ -11,8 +11,10 @@ public class RegisterTutorRequest {
     @Email @NotBlank private String email;
     @NotBlank private String password;
     @Min(0) private int experiencia;
+    @NotBlank private String carrera;
+    @Min(1) private int semestre;
 
-    // Opcionales en registro — se completan después en el dashboard
+    // Opcionales — se completan en el dashboard
     private String bio;
     private double precio;
     private String modalidad;

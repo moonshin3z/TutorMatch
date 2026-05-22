@@ -25,6 +25,10 @@ public class Tutor {
     private double rating;
     private int experiencia;
 
+    // Identidad académica — Fase A
+    private String carrera;
+    private int semestre;
+
     // Campos enriquecidos — Fase 2
     private String bio;
     private double precio;          // Quetzales por hora

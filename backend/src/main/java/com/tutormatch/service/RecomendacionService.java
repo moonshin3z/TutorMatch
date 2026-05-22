@@ -67,6 +67,9 @@ public class RecomendacionService {
               coalesce(t.precio, 0.0)                                              AS precio,
               coalesce(t.modalidad, 'PRESENCIAL')                                  AS modalidad,
               coalesce(t.fotoUrl, '')                                               AS fotoUrl,
+              coalesce(t.carrera, '')                                               AS carreraT,
+              coalesce(t.semestre, 0)                                              AS semestreT,
+              coalesce(t.email, '')                                                 AS emailT,
               coalesce(e.modalidadPreferida, '')                                   AS modalidadPreferida,
               recs,
               score
@@ -109,6 +112,9 @@ public class RecomendacionService {
         dto.setPrecio(toDouble(row.get("precio")));
         dto.setModalidad((String) row.get("modalidad"));
         dto.setFotoUrl((String) row.get("fotoUrl"));
+        dto.setCarrera((String) row.get("carreraT"));
+        dto.setSemestre(toInt(row.get("semestreT")));
+        dto.setEmailTutor((String) row.get("emailT"));
 
         List<String> cursos        = (List<String>) row.get("cursos");
         List<String> cursosCodigos = (List<String>) row.get("cursosCodigos");

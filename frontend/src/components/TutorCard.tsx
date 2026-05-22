@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 export interface Recomendacion {
   id: number
   nombre: string
+  carrera: string
+  semestre: number
+  emailTutor: string
   rating: number
   experiencia: number
   nivel: string
@@ -84,11 +87,18 @@ export default function TutorCard({ tutor, highlight }: Props) {
             <p className="text-sm font-semibold text-uvg-text leading-tight truncate">
               {tutor.nombre}
             </p>
-            <p className="text-xs text-uvg-muted mt-0.5">
-              {tutor.experiencia > 0
-                ? `${tutor.experiencia} año${tutor.experiencia !== 1 ? 's' : ''} de experiencia`
-                : 'Tutor nuevo'}
-            </p>
+            {tutor.carrera ? (
+              <p className="text-xs text-uvg-muted mt-0.5">
+                {tutor.carrera}
+                {tutor.semestre > 0 && ` · ${tutor.semestre}° semestre`}
+              </p>
+            ) : (
+              <p className="text-xs text-uvg-muted mt-0.5">
+                {tutor.experiencia > 0
+                  ? `${tutor.experiencia} año${tutor.experiencia !== 1 ? 's' : ''} de experiencia`
+                  : 'Tutor nuevo'}
+              </p>
+            )}
             {/* Rating + precio + modalidad */}
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className="text-xs font-medium text-uvg-text">

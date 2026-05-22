@@ -79,6 +79,8 @@ public class AuthService {
         t.setEmail(req.getEmail());
         t.setPassword(encoder.encode(req.getPassword()));
         t.setExperiencia(req.getExperiencia());
+        t.setCarrera(req.getCarrera());
+        t.setSemestre(req.getSemestre());
         t.setRating(0.0);
         t = tutorRepo.save(t);
         return new AuthResponse(

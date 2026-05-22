@@ -31,7 +31,8 @@ export default function Register() {
         ? { nombre: form.nombre, email: form.email, password: form.password,
             carrera: form.carrera, semestre: Number(form.semestre) }
         : { nombre: form.nombre, email: form.email, password: form.password,
-            experiencia: Number(form.experiencia) }
+            experiencia: Number(form.experiencia),
+            carrera: form.carrera, semestre: Number(form.semestre) }
 
       const { data } = await api.post(endpoint, payload)
       setAuth(data)
@@ -110,11 +111,27 @@ export default function Register() {
             )}
 
             {role === 'TUTOR' && (
-              <div>
-                <label className="form-label">Años de experiencia</label>
-                <input type="number" className="form-input" min="0" max="30"
-                  value={form.experiencia} onChange={e => set('experiencia', e.target.value)} />
-              </div>
+              <>
+                <div>
+                  <label className="form-label">Carrera</label>
+                  <input className="form-input" placeholder="Ej. Ingeniería en Sistemas"
+                    value={form.carrera} onChange={e => set('carrera', e.target.value)} required />
+                </div>
+                <div>
+                  <label className="form-label">Semestre</label>
+                  <select className="form-input" value={form.semestre}
+                    onChange={e => set('semestre', e.target.value)}>
+                    {[1,2,3,4,5,6,7,8,9,10].map(s =>
+                      <option key={s} value={s}>{s}</option>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="form-label">Años de experiencia dando tutorías</label>
+                  <input type="number" className="form-input" min="0" max="30"
+                    value={form.experiencia} onChange={e => set('experiencia', e.target.value)} />
+                </div>
+              </>
             )}
 
             {error && (
