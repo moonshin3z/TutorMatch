@@ -52,6 +52,11 @@ public class RecomendacionService {
                       ELSE 0
                     END
                   + CASE WHEN recs > 3 THEN 3 ELSE recs END
+                  + CASE
+                      WHEN t.carrera IS NOT NULL AND e.carrera IS NOT NULL
+                           AND t.carrera = e.carrera THEN 2
+                      ELSE 0
+                    END
                  ) AS score
             RETURN
               id(t)                                                                AS id,
@@ -74,7 +79,7 @@ public class RecomendacionService {
               recs,
               score
             ORDER BY score DESC
-            LIMIT 5
+            LIMIT 10
             """;
 
         return neo4jClient.query(cypher)

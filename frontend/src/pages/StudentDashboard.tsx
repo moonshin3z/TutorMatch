@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../api/client'
 import { useAuthStore } from '../store/authStore'
 import TutorCard, { type Recomendacion } from '../components/TutorCard'
@@ -13,7 +12,22 @@ interface Perfil  {
   nivelBuscado: Nivel | null
 }
 
-interface Filters { materia: string; nivel: string; modalidad: string; dia: string }
+type SortBy = 'score' | 'rating' | 'precio' | 'experiencia'
+
+interface Filters {
+  search:    string
+  materia:   string
+  nivel:     string
+  modalidad: string
+  dia:       string
+  precioMax: string
+  sortBy:    SortBy
+}
+
+const EMPTY_FILTERS: Filters = {
+  search: '', materia: '', nivel: '', modalidad: '',
+  dia: '', precioMax: '', sortBy: 'score'
+}
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const MODALIDADES = [
@@ -38,11 +52,12 @@ export default function StudentDashboard() {
   const [allHorarios, setAllHorarios]             = useState<Horario[]>([])
   const [allNiveles, setAllNiveles]               = useState<Nivel[]>([])
   const [loading, setLoading]                     = useState(true)
-  const [filters, setFilters]                     = useState<Filters>({ materia: '', nivel: '', modalidad: '', dia: '' })
-  const [flash, setFlash]                         = useState('')
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [flash, setFlash]     = useState('')
 
   const setF = (k: keyof Filters, v: string) => setFilters(f => ({ ...f, [k]: v }))
-  const anyFilter = Object.values(filters).some(Boolean)
+  const anyFilter = filters.search || filters.materia || filters.nivel ||
+                    filters.modalidad || filters.dia || filters.precioMax
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 2500) }
 
@@ -68,14 +83,27 @@ export default function StudentDashboard() {
 
   useEffect(() => { fetchAll() }, [id])
 
-  // ── Filtrado client-side ──────────────────────────────────────────────────
-  const filtered = recs.filter(t => {
-    if (filters.materia && !t.cursosCodigos?.includes(filters.materia)) return false
-    if (filters.nivel && t.nivel !== filters.nivel) return false
-    if (filters.modalidad && t.modalidad !== filters.modalidad && t.modalidad !== 'AMBAS') return false
-    if (filters.dia && !t.horarios?.some(h => h.startsWith(filters.dia))) return false
-    return true
-  })
+  // ── Filtrado + ordenamiento client-side ─────────────────────────────────
+  const filtered = recs
+    .filter(t => {
+      if (filters.search && !t.nombre.toLowerCase().includes(filters.search.toLowerCase()) &&
+          !(t.carrera ?? '').toLowerCase().includes(filters.search.toLowerCase())) return false
+      if (filters.materia   && !t.cursosCodigos?.includes(filters.materia)) return false
+      if (filters.nivel     && t.nivel !== filters.nivel) return false
+      if (filters.modalidad && t.modalidad !== filters.modalidad && t.modalidad !== 'AMBAS') return false
+      if (filters.dia       && !t.horarios?.some(h => h.startsWith(filters.dia))) return false
+      if (filters.precioMax) {
+        const max = Number(filters.precioMax)
+        if (!isNaN(max) && t.precio > 0 && t.precio > max) return false
+      }
+      return true
+    })
+    .sort((a, b) => {
+      if (filters.sortBy === 'rating')      return b.rating - a.rating
+      if (filters.sortBy === 'precio')      return (a.precio || 9999) - (b.precio || 9999)
+      if (filters.sortBy === 'experiencia') return b.experiencia - a.experiencia
+      return b.score - a.score  // default: mejor match
+    })
 
   // ── Perfil tab: helpers ───────────────────────────────────────────────────
   const cursosDisponibles = allCursos.filter(c => !perfil?.cursos.some(p => p.codigo === c.codigo))
@@ -138,79 +166,110 @@ export default function StudentDashboard() {
       {tab === 'feed' && (
         <div>
           {/* Saludo + conteo */}
-          <div className="mb-5">
+          <div className="mb-4">
             <h1 className="heading-page">{greeting(nombre ?? 'estudiante')}</h1>
             <p className="text-sm text-uvg-muted mt-1">
-              {filtered.length > 0
-                ? `${filtered.length} tutor${filtered.length !== 1 ? 'es' : ''} recomendado${filtered.length !== 1 ? 's' : ''} para ti`
-                : 'Ajusta los filtros o actualiza tu perfil para ver resultados'}
+              {recs.length > 0
+                ? `${filtered.length} de ${recs.length} tutor${recs.length !== 1 ? 'es' : ''} recomendado${recs.length !== 1 ? 's' : ''}`
+                : 'Ajusta tu perfil para obtener recomendaciones'}
             </p>
           </div>
 
-          {/* Barra de filtros */}
+          {/* ── Búsqueda por nombre ── */}
+          <div className="relative mb-3">
+            <input
+              type="text"
+              value={filters.search}
+              onChange={e => setF('search', e.target.value)}
+              placeholder="Buscar tutor por nombre o carrera..."
+              className="form-input pr-8 text-sm"
+            />
+            {filters.search && (
+              <button
+                onClick={() => setF('search', '')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-uvg-muted hover:text-uvg-text text-sm"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* ── Filtros y ordenamiento ── */}
           <div className="mb-5 -mx-1 px-1 overflow-x-auto">
-            <div className="flex gap-2 pb-1" style={{ minWidth: 'max-content' }}>
+            <div className="flex gap-2 pb-1 items-center" style={{ minWidth: 'max-content' }}>
 
               {/* Materia */}
-              <select
+              <FilterSelect
                 value={filters.materia}
-                onChange={e => setF('materia', e.target.value)}
-                className={`text-xs px-3 py-1.5 rounded border cursor-pointer transition-colors outline-none ${
-                  filters.materia
-                    ? 'border-uvg-green bg-uvg-green text-white'
-                    : 'border-uvg-border bg-uvg-surface text-uvg-muted hover:border-uvg-border-strong'
-                }`}
-              >
-                <option value="">Materia</option>
-                {allCursos.map(c => <option key={c.codigo} value={c.codigo}>{c.codigo}</option>)}
-              </select>
+                onChange={v => setF('materia', v)}
+                placeholder="Materia"
+                options={allCursos.map(c => ({ value: c.codigo, label: c.codigo }))}
+              />
 
               {/* Nivel */}
-              <select
+              <FilterSelect
                 value={filters.nivel}
-                onChange={e => setF('nivel', e.target.value)}
-                className={`text-xs px-3 py-1.5 rounded border cursor-pointer transition-colors outline-none ${
-                  filters.nivel
-                    ? 'border-uvg-green bg-uvg-green text-white'
-                    : 'border-uvg-border bg-uvg-surface text-uvg-muted hover:border-uvg-border-strong'
-                }`}
-              >
-                <option value="">Nivel</option>
-                {allNiveles.map(n => <option key={n.id} value={n.nombre}>{n.nombre}</option>)}
-              </select>
+                onChange={v => setF('nivel', v)}
+                placeholder="Nivel"
+                options={allNiveles.map(n => ({ value: n.nombre, label: n.nombre }))}
+              />
 
               {/* Modalidad */}
-              <select
+              <FilterSelect
                 value={filters.modalidad}
-                onChange={e => setF('modalidad', e.target.value)}
-                className={`text-xs px-3 py-1.5 rounded border cursor-pointer transition-colors outline-none ${
-                  filters.modalidad
-                    ? 'border-uvg-green bg-uvg-green text-white'
-                    : 'border-uvg-border bg-uvg-surface text-uvg-muted hover:border-uvg-border-strong'
-                }`}
-              >
-                <option value="">Modalidad</option>
-                {MODALIDADES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-              </select>
+                onChange={v => setF('modalidad', v)}
+                placeholder="Modalidad"
+                options={MODALIDADES.map(m => ({ value: m.value, label: m.label }))}
+              />
 
               {/* Día */}
-              <select
+              <FilterSelect
                 value={filters.dia}
-                onChange={e => setF('dia', e.target.value)}
-                className={`text-xs px-3 py-1.5 rounded border cursor-pointer transition-colors outline-none ${
-                  filters.dia
-                    ? 'border-uvg-green bg-uvg-green text-white'
-                    : 'border-uvg-border bg-uvg-surface text-uvg-muted hover:border-uvg-border-strong'
-                }`}
-              >
-                <option value="">Día</option>
-                {DIAS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+                onChange={v => setF('dia', v)}
+                placeholder="Día"
+                options={DIAS.map(d => ({ value: d, label: d }))}
+              />
+
+              {/* Precio máx */}
+              <div className={`flex items-center gap-1 border rounded px-2.5 py-1.5 text-xs transition-colors ${
+                filters.precioMax
+                  ? 'border-uvg-green bg-uvg-green text-white'
+                  : 'border-uvg-border bg-uvg-surface text-uvg-muted'
+              }`}>
+                <span className={filters.precioMax ? 'text-white' : 'text-uvg-subtle'}>Q</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={filters.precioMax}
+                  onChange={e => setF('precioMax', e.target.value)}
+                  placeholder="Máx"
+                  className={`w-14 outline-none bg-transparent ${
+                    filters.precioMax ? 'placeholder:text-white/60' : 'placeholder:text-uvg-subtle'
+                  }`}
+                />
+              </div>
+
+              {/* Separador visual */}
+              <span className="text-uvg-border select-none">|</span>
+
+              {/* Ordenar por */}
+              <FilterSelect
+                value={filters.sortBy}
+                onChange={v => setF('sortBy', v as SortBy)}
+                placeholder="Ordenar"
+                options={[
+                  { value: 'score',       label: 'Mejor match'    },
+                  { value: 'rating',      label: 'Mejor rating'   },
+                  { value: 'precio',      label: 'Precio: menor'  },
+                  { value: 'experiencia', label: 'Más experiencia' },
+                ]}
+                alwaysColored
+              />
 
               {/* Limpiar */}
               {anyFilter && (
                 <button
-                  onClick={() => setFilters({ materia: '', nivel: '', modalidad: '', dia: '' })}
+                  onClick={() => setFilters(EMPTY_FILTERS)}
                   className="text-xs px-3 py-1.5 rounded border border-uvg-border text-uvg-muted hover:text-red-600 hover:border-red-200 transition-colors"
                 >
                   Limpiar ×
@@ -227,30 +286,20 @@ export default function StudentDashboard() {
               ))}
             </div>
           ) : recs.length === 0 ? (
-            /* Empty state: sin recomendaciones en absoluto */
             <div className="empty-state border border-uvg-border rounded-md">
               <p className="empty-state-title">Aún no tenemos tutores para vos</p>
               <p className="empty-state-body">
                 Agregá más cursos y horarios disponibles en tu perfil para que el sistema encuentre matches.
               </p>
-              <button
-                onClick={() => setTab('perfil')}
-                className="btn-primary mt-4"
-              >
+              <button onClick={() => setTab('perfil')} className="btn-primary mt-4">
                 Actualizar mi perfil →
               </button>
             </div>
           ) : (
-            /* Empty state: filtros sin resultado */
             <div className="empty-state border border-uvg-border rounded-md">
               <p className="empty-state-title">Ningún tutor coincide con esos filtros</p>
-              <p className="empty-state-body">
-                Probá quitando algún filtro para ver más opciones.
-              </p>
-              <button
-                onClick={() => setFilters({ materia: '', nivel: '', modalidad: '', dia: '' })}
-                className="btn-secondary mt-4"
-              >
+              <p className="empty-state-body">Probá quitando algún filtro para ver más opciones.</p>
+              <button onClick={() => setFilters(EMPTY_FILTERS)} className="btn-secondary mt-4">
                 Quitar filtros
               </button>
             </div>
@@ -355,5 +404,34 @@ export default function StudentDashboard() {
         </div>
       )}
     </div>
+  )
+}
+
+// ── Componente reutilizable para filtros tipo pill ────────────────────────────
+interface FilterSelectProps {
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  options: { value: string; label: string }[]
+  alwaysColored?: boolean
+}
+
+function FilterSelect({ value, onChange, placeholder, options, alwaysColored }: FilterSelectProps) {
+  const active = alwaysColored || Boolean(value)
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className={`text-xs px-3 py-1.5 rounded border cursor-pointer transition-colors outline-none ${
+        active
+          ? 'border-uvg-green bg-uvg-green text-white'
+          : 'border-uvg-border bg-uvg-surface text-uvg-muted hover:border-uvg-border-strong'
+      }`}
+    >
+      {!alwaysColored && <option value="">{placeholder}</option>}
+      {options.map(o => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
   )
 }
