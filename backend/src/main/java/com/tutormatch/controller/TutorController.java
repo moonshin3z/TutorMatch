@@ -103,4 +103,9 @@ public class TutorController {
     public ResponseEntity<List<ReviewResponse>> listarReviews(@PathVariable Long id) {
         return ResponseEntity.ok(service.listarReviews(id));
     }
+
+    @GetMapping("/{id}/stats")
+    public ResponseEntity<Map<String, Object>> stats(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getStats(id));
+    }
 }

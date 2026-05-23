@@ -54,6 +54,12 @@ export default function StudentDashboard() {
   const [loading, setLoading]                     = useState(true)
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [flash, setFlash]     = useState('')
+  const [profileDirty, setProfileDirty] = useState(false)
+
+  // Campos editables del perfil
+  const [editCarrera, setEditCarrera]   = useState('')
+  const [editSemestre, setEditSemestre] = useState('')
+  const [savingPerfil, setSavingPerfil] = useState(false)
 
   const setF = (k: keyof Filters, v: string) => setFilters(f => ({ ...f, [k]: v }))
   const anyFilter = filters.search || filters.materia || filters.nivel ||
@@ -61,8 +67,9 @@ export default function StudentDashboard() {
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 2500) }
 
-  const fetchAll = async () => {
-    setLoading(true)
+  // fetchAll con opción de suprimir el loading (para refetch sin flicker)
+  const fetchAll = async (showLoading = true) => {
+    if (showLoading) setLoading(true)
     try {
       const [recsRes, perfilRes, cursosRes, horariosRes, nivelesRes] = await Promise.all([
         api.get(`/recomendaciones/${id}`),
@@ -72,7 +79,10 @@ export default function StudentDashboard() {
         api.get('/niveles'),
       ])
       setRecs(recsRes.data)
-      setPerfil(perfilRes.data)
+      const p = perfilRes.data
+      setPerfil(p)
+      setEditCarrera(p.carrera ?? '')
+      setEditSemestre(p.semestre > 0 ? String(p.semestre) : '')
       setAllCursos(cursosRes.data)
       setAllHorarios(horariosRes.data)
       setAllNiveles(nivelesRes.data.sort((a: Nivel & { valor: number }, b: Nivel & { valor: number }) => a.valor - b.valor))
@@ -82,6 +92,15 @@ export default function StudentDashboard() {
   }
 
   useEffect(() => { fetchAll() }, [id])
+
+  // Al volver al feed después de editar perfil, refresca sin flicker
+  const handleTabChange = (newTab: 'feed' | 'perfil') => {
+    if (newTab === 'feed' && profileDirty) {
+      fetchAll(false)
+      setProfileDirty(false)
+    }
+    setTab(newTab)
+  }
 
   // ── Filtrado + ordenamiento client-side ─────────────────────────────────
   const filtered = recs
@@ -109,20 +128,40 @@ export default function StudentDashboard() {
   const cursosDisponibles = allCursos.filter(c => !perfil?.cursos.some(p => p.codigo === c.codigo))
   const horariosDisponibles = allHorarios.filter(h => !perfil?.horarios.some(p => p.id === h.id))
 
+  const markDirty = () => setProfileDirty(true)
+
   const addCurso = async (codigo: string) => {
-    await api.put(`/estudiantes/${id}/cursos`, { codigo }); showFlash('Curso agregado'); fetchAll()
+    await api.put(`/estudiantes/${id}/cursos`, { codigo })
+    showFlash('Curso agregado'); markDirty(); fetchAll(false)
   }
   const removeCurso = async (codigo: string) => {
-    await api.delete(`/estudiantes/${id}/cursos/${codigo}`); showFlash('Eliminado'); fetchAll()
+    await api.delete(`/estudiantes/${id}/cursos/${codigo}`)
+    showFlash('Eliminado'); markDirty(); fetchAll(false)
   }
   const addHorario = async (horarioId: number) => {
-    await api.put(`/estudiantes/${id}/horarios`, { horarioId }); showFlash('Horario agregado'); fetchAll()
+    await api.put(`/estudiantes/${id}/horarios`, { horarioId })
+    showFlash('Horario agregado'); markDirty(); fetchAll(false)
   }
   const removeHorario = async (horarioId: number) => {
-    await api.delete(`/estudiantes/${id}/horarios/${horarioId}`); showFlash('Eliminado'); fetchAll()
+    await api.delete(`/estudiantes/${id}/horarios/${horarioId}`)
+    showFlash('Eliminado'); markDirty(); fetchAll(false)
+  }
+  const savePerfilInfo = async () => {
+    if (!editCarrera.trim()) return
+    setSavingPerfil(true)
+    try {
+      await api.put(`/estudiantes/${id}/perfil`, {
+        carrera: editCarrera.trim(),
+        semestre: editSemestre ? Number(editSemestre) : null,
+      })
+      showFlash('Información actualizada'); markDirty(); fetchAll(false)
+    } finally {
+      setSavingPerfil(false)
+    }
   }
   const setNivel = async (nivel: string) => {
-    await api.put(`/estudiantes/${id}/nivel`, { nivel }); showFlash('Nivel actualizado'); fetchAll()
+    await api.put(`/estudiantes/${id}/nivel`, { nivel })
+    showFlash('Nivel actualizado'); markDirty(); fetchAll(false)
   }
 
   // ── Loading state ─────────────────────────────────────────────────────────
@@ -149,13 +188,16 @@ export default function StudentDashboard() {
       {/* Tabs */}
       <div className="tab-bar mb-6">
         <button
-          onClick={() => setTab('feed')}
+          onClick={() => handleTabChange('feed')}
           className={tab === 'feed' ? 'tab-item-active' : 'tab-item-inactive'}
         >
           Mis tutores
+          {profileDirty && tab === 'perfil' && (
+            <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-uvg-green inline-block" />
+          )}
         </button>
         <button
-          onClick={() => setTab('perfil')}
+          onClick={() => handleTabChange('perfil')}
           className={tab === 'perfil' ? 'tab-item-active' : 'tab-item-inactive'}
         >
           Mi perfil
@@ -314,12 +356,40 @@ export default function StudentDashboard() {
           {/* Info básica */}
           <div className="card">
             <h2 className="heading-section mb-4">Información personal</h2>
-            <dl className="grid grid-cols-2 gap-y-3 text-sm">
+            <dl className="grid grid-cols-2 gap-y-3 text-sm mb-4">
               <div><dt className="text-uvg-muted text-xs">Nombre</dt><dd className="font-medium mt-0.5">{perfil.nombre}</dd></div>
               <div><dt className="text-uvg-muted text-xs">Correo</dt><dd className="font-medium mt-0.5 text-xs truncate">{perfil.email}</dd></div>
-              <div><dt className="text-uvg-muted text-xs">Carrera</dt><dd className="font-medium mt-0.5">{perfil.carrera}</dd></div>
-              <div><dt className="text-uvg-muted text-xs">Semestre</dt><dd className="font-medium mt-0.5">{perfil.semestre}</dd></div>
             </dl>
+            <div className="divider pt-4 grid grid-cols-2 gap-3">
+              <div>
+                <label className="form-label">Carrera</label>
+                <input
+                  value={editCarrera}
+                  onChange={e => setEditCarrera(e.target.value)}
+                  placeholder="Ej. Ingeniería en Sistemas"
+                  className="form-input"
+                />
+              </div>
+              <div>
+                <label className="form-label">Semestre</label>
+                <select
+                  value={editSemestre}
+                  onChange={e => setEditSemestre(e.target.value)}
+                  className="form-input"
+                >
+                  {[1,2,3,4,5,6,7,8,9,10].map(s =>
+                    <option key={s} value={s}>{s}</option>
+                  )}
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={savePerfilInfo}
+              disabled={savingPerfil || !editCarrera.trim()}
+              className="btn-primary w-full mt-4"
+            >
+              {savingPerfil ? 'Guardando...' : 'Guardar información'}
+            </button>
           </div>
 
           {/* Nivel */}

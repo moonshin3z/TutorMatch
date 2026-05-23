@@ -105,6 +105,21 @@ public class TutorService {
         tutorRepo.save(t);
     }
 
+    public Map<String, Object> getStats(Long tutorId) {
+        obtener(tutorId);
+        var result = neo4jClient.query(
+                "MATCH ()-[:RECOMIENDA]->(t:Tutor) WHERE id(t) = $tId RETURN count(*) AS n"
+        ).bind(tutorId).to("tId").fetch().one();
+        long interesados = result.map(r -> ((Number) r.get("n")).longValue()).orElse(0L);
+        Tutor t = obtener(tutorId);
+        return Map.of(
+                "estudiantesInteresados", interesados,
+                "rating",       t.getRating(),
+                "totalReviews", t.getTotalReviews(),
+                "totalCursos",  t.getCursos().size()
+        );
+    }
+
     public void eliminar(Long id) {
         obtener(id);
         tutorRepo.deleteById(id);

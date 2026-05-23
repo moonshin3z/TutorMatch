@@ -69,6 +69,13 @@ public class EstudianteService {
         estudianteRepo.save(e);
     }
 
+    public void actualizarPerfil(Long estudianteId, String carrera, Integer semestre) {
+        Estudiante e = obtener(estudianteId);
+        if (carrera != null && !carrera.isBlank()) e.setCarrera(carrera);
+        if (semestre != null && semestre >= 1) e.setSemestre(semestre);
+        estudianteRepo.save(e);
+    }
+
     public void completarOnboarding(Long estudianteId, String modalidadPreferida) {
         Estudiante e = obtener(estudianteId);
         e.setOnboardingCompleto(true);

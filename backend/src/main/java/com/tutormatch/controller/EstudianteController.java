@@ -61,6 +61,16 @@ public class EstudianteController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}/perfil")
+    public ResponseEntity<Void> actualizarPerfil(@PathVariable Long id,
+                                                  @RequestBody Map<String, Object> body) {
+        String carrera  = (String) body.get("carrera");
+        Integer semestre = body.get("semestre") != null
+                ? ((Number) body.get("semestre")).intValue() : null;
+        service.actualizarPerfil(id, carrera, semestre);
+        return ResponseEntity.ok().build();
+    }
+
     @PutMapping("/{id}/onboarding")
     public ResponseEntity<Void> completarOnboarding(@PathVariable Long id,
                                                      @RequestBody Map<String, Object> body) {

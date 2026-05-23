@@ -8,6 +8,7 @@ import Onboarding from './pages/Onboarding'
 import StudentDashboard from './pages/StudentDashboard'
 import TutorDashboard from './pages/TutorDashboard'
 import TutorProfile from './pages/TutorProfile'
+import TutorSetup from './pages/TutorSetup'
 
 function RootRedirect() {
   const { token, role, onboardingCompleto } = useAuthStore()
@@ -20,7 +21,7 @@ function RootRedirect() {
 function AppShell() {
   const { token } = useAuthStore()
   const { pathname } = useLocation()
-  const showNavbar = token && pathname !== '/onboarding'
+  const showNavbar = token && pathname !== '/onboarding' && pathname !== '/tutor-setup'
 
   return (
     <>
@@ -42,6 +43,11 @@ function AppShell() {
         <Route path="/tutor" element={
           <ProtectedRoute role="TUTOR">
             <TutorDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/tutor-setup" element={
+          <ProtectedRoute role="TUTOR">
+            <TutorSetup />
           </ProtectedRoute>
         } />
         <Route path="/tutor/:id" element={

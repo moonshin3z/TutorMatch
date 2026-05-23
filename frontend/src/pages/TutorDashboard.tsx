@@ -13,8 +13,16 @@ interface Review  {
 interface Perfil {
   nombre: string; email: string; rating: number; totalReviews: number
   experiencia: number; bio: string; precio: number; modalidad: string
+  carrera: string; semestre: number
   cursos: Curso[]; horarios: Horario[]
   nivel: Nivel | null
+}
+
+interface Stats {
+  estudiantesInteresados: number
+  rating: number
+  totalReviews: number
+  totalCursos: number
 }
 
 type Tab = 'perfil' | 'disponibilidad' | 'reseñas'
@@ -62,6 +70,7 @@ export default function TutorDashboard() {
   const [allNiveles, setAllNiveles]   = useState<Nivel[]>([])
   const [loading, setLoading]   = useState(true)
   const [flash, setFlash]       = useState('')
+  const [stats, setStats]       = useState<Stats | null>(null)
 
   // Estado del formulario de perfil
   const [bio, setBio]           = useState('')
@@ -74,13 +83,15 @@ export default function TutorDashboard() {
   const fetchAll = async () => {
     setLoading(true)
     try {
-      const [perfilRes, reviewsRes, cursosRes, horariosRes, nivelesRes] = await Promise.all([
+      const [perfilRes, reviewsRes, statsRes, cursosRes, horariosRes, nivelesRes] = await Promise.all([
         api.get(`/tutores/${id}`),
         api.get(`/tutores/${id}/reviews`),
+        api.get(`/tutores/${id}/stats`),
         api.get('/cursos'),
         api.get('/horarios'),
         api.get('/niveles'),
       ])
+      setStats(statsRes.data)
       const p: Perfil = perfilRes.data
       setPerfil(p)
       setReviews(reviewsRes.data)
@@ -174,13 +185,18 @@ export default function TutorDashboard() {
       {flash && <div className="alert-success mb-4 animate-fade-up">{flash}</div>}
 
       {/* ── Header de identidad ── */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <div className="w-12 h-12 rounded-md bg-uvg-green-light flex items-center justify-center flex-shrink-0">
           <span className="text-uvg-green font-bold">{initials(perfil.nombre)}</span>
         </div>
         <div>
           <p className="font-semibold text-uvg-text">{perfil.nombre}</p>
-          <p className="text-xs text-uvg-muted">{perfil.email}</p>
+          {perfil.carrera && (
+            <p className="text-xs text-uvg-muted">
+              {perfil.carrera}{perfil.semestre > 0 && ` · ${perfil.semestre}° semestre`}
+            </p>
+          )}
+          <p className="text-2xs text-uvg-subtle">{perfil.email}</p>
         </div>
         {perfil.rating > 0 && (
           <div className="ml-auto text-right">
@@ -193,6 +209,28 @@ export default function TutorDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Stats ── */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <StatCard
+            value={stats.estudiantesInteresados}
+            label="Interesados"
+            hint="estudiantes que te guardaron"
+          />
+          <StatCard
+            value={stats.rating > 0 ? stats.rating.toFixed(1) : '—'}
+            label="Calificación"
+            hint={`${stats.totalReviews} reseña${stats.totalReviews !== 1 ? 's' : ''}`}
+            accent
+          />
+          <StatCard
+            value={stats.totalCursos}
+            label="Materias"
+            hint="cursos activos"
+          />
+        </div>
+      )}
 
       {/* ── Tabs ── */}
       <div className="tab-bar mb-6">
@@ -441,6 +479,26 @@ export default function TutorDashboard() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Tarjeta de estadística ────────────────────────────────────────────────────
+function StatCard({
+  value, label, hint, accent = false
+}: {
+  value: string | number
+  label: string
+  hint: string
+  accent?: boolean
+}) {
+  return (
+    <div className={`card text-center py-4 ${accent ? 'border-uvg-green' : ''}`}>
+      <p className={`text-2xl font-semibold ${accent ? 'text-uvg-green' : 'text-uvg-text'}`}>
+        {value}
+      </p>
+      <p className="text-xs font-medium text-uvg-text mt-0.5">{label}</p>
+      <p className="text-2xs text-uvg-subtle mt-0.5 leading-snug">{hint}</p>
     </div>
   )
 }

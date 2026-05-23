@@ -36,7 +36,7 @@ export default function Register() {
 
       const { data } = await api.post(endpoint, payload)
       setAuth(data)
-      navigate(role === 'ESTUDIANTE' ? '/onboarding' : '/tutor')
+      navigate(role === 'ESTUDIANTE' ? '/onboarding' : '/tutor-setup')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al registrarse')
     } finally {
