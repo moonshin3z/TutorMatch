@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import api from '../api/client'
 import { useAuthStore } from '../store/authStore'
 import TutorCard, { type Recomendacion } from '../components/TutorCard'
+import SearchModal from '../components/SearchModal'
 
 interface Curso   { codigo: string; nombre: string }
 interface Horario { id: number; dia: string; horaInicio: string; horaFin: string }
 interface Nivel   { id: number; nombre: string }
 interface Perfil  {
   nombre: string; carrera: string; semestre: number; email: string
+  modalidadPreferida: string
   cursos: Curso[]; horarios: Horario[]
   nivelBuscado: Nivel | null
 }
@@ -54,7 +56,8 @@ export default function StudentDashboard() {
   const [loading, setLoading]                     = useState(true)
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [flash, setFlash]     = useState('')
-  const [profileDirty, setProfileDirty] = useState(false)
+  const [profileDirty, setProfileDirty]   = useState(false)
+  const [searchModalOpen, setSearchModalOpen] = useState(false)
 
   // Campos editables del perfil
   const [editCarrera, setEditCarrera]   = useState('')
@@ -207,14 +210,22 @@ export default function StudentDashboard() {
       {/* ══════════════════════════════════════ FEED ══════════════════════════ */}
       {tab === 'feed' && (
         <div>
-          {/* Saludo + conteo */}
-          <div className="mb-4">
-            <h1 className="heading-page">{greeting(nombre ?? 'estudiante')}</h1>
-            <p className="text-sm text-uvg-muted mt-1">
-              {recs.length > 0
-                ? `${filtered.length} de ${recs.length} tutor${recs.length !== 1 ? 'es' : ''} recomendado${recs.length !== 1 ? 's' : ''}`
-                : 'Ajusta tu perfil para obtener recomendaciones'}
-            </p>
+          {/* Saludo + conteo + botón de búsqueda */}
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h1 className="heading-page">{greeting(nombre ?? 'estudiante')}</h1>
+              <p className="text-sm text-uvg-muted mt-1">
+                {recs.length > 0
+                  ? `${filtered.length} de ${recs.length} tutor${recs.length !== 1 ? 'es' : ''} recomendado${recs.length !== 1 ? 's' : ''}`
+                  : 'Ajusta tu búsqueda para ver resultados'}
+              </p>
+            </div>
+            <button
+              onClick={() => setSearchModalOpen(true)}
+              className="btn-secondary text-xs py-2 flex-shrink-0 mt-1"
+            >
+              Buscar de nuevo
+            </button>
           </div>
 
           {/* ── Búsqueda por nombre ── */}
@@ -473,6 +484,23 @@ export default function StudentDashboard() {
           </p>
         </div>
       )}
+
+      {/* Modal de búsqueda */}
+      <SearchModal
+        open={searchModalOpen}
+        currentPrefs={{
+          cursoCodigos: perfil?.cursos.map(c => c.codigo) ?? [],
+          horarioIds:   perfil?.horarios.map(h => h.id)   ?? [],
+          nivel:        perfil?.nivelBuscado?.nombre       ?? '',
+          modalidad:    perfil?.modalidadPreferida          ?? '',
+        }}
+        onClose={() => setSearchModalOpen(false)}
+        onApplied={() => {
+          setSearchModalOpen(false)
+          showFlash('Búsqueda actualizada — mostrando nuevos resultados')
+          fetchAll(false)
+        }}
+      />
     </div>
   )
 }

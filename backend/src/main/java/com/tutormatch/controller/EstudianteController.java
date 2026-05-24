@@ -61,6 +61,19 @@ public class EstudianteController {
         return ResponseEntity.ok().build();
     }
 
+    @SuppressWarnings("unchecked")
+    @PutMapping("/{id}/busqueda")
+    public ResponseEntity<Void> actualizarBusqueda(@PathVariable Long id,
+                                                    @RequestBody java.util.Map<String, Object> body) {
+        var cursos   = (java.util.List<String>) body.getOrDefault("cursos",   java.util.List.of());
+        var horasRaw = (java.util.List<Number>) body.getOrDefault("horarios", java.util.List.of());
+        var horarios = horasRaw.stream().map(Number::longValue).toList();
+        String nivel    = (String) body.get("nivel");
+        String modalidad = (String) body.get("modalidad");
+        service.actualizarBusqueda(id, cursos, horarios, nivel, modalidad);
+        return ResponseEntity.ok().build();
+    }
+
     @PutMapping("/{id}/perfil")
     public ResponseEntity<Void> actualizarPerfil(@PathVariable Long id,
                                                   @RequestBody Map<String, Object> body) {
