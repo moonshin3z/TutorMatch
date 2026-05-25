@@ -1,7 +1,10 @@
 package com.tutormatch.service;
 
 import com.tutormatch.dto.RecomendacionDTO;
+import com.tutormatch.dto.TutorGuardadoDTO;
 import com.tutormatch.repository.EstudianteRepository;
+
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.http.HttpStatus;
@@ -91,16 +94,83 @@ public class RecomendacionService {
                 .toList();
     }
 
+    // Guarda el tutor con estado PENDIENTE y fecha — usa ON CREATE/ON MATCH
+    // para no sobreescribir si ya existe la relación
     public void marcarRecomendado(Long estudianteId, Long tutorId) {
         String cypher = """
             MATCH (e:Estudiante) WHERE id(e) = $eId
-            MATCH (t:Tutor) WHERE id(t) = $tId
-            MERGE (e)-[:RECOMIENDA]->(t)
+            MATCH (t:Tutor)      WHERE id(t) = $tId
+            MERGE (e)-[r:RECOMIENDA]->(t)
+            ON CREATE SET r.estado = 'PENDIENTE', r.fecha = $fecha
+            ON MATCH  SET r.estado = coalesce(r.estado, 'PENDIENTE'),
+                          r.fecha  = coalesce(r.fecha,  $fecha)
             """;
         neo4jClient.query(cypher)
                 .bind(estudianteId).to("eId")
                 .bind(tutorId).to("tId")
+                .bind(LocalDate.now().toString()).to("fecha")
                 .run();
+    }
+
+    // Cambia la relación RECOMIENDA a COMPLETADO — habilita dejar reseña
+    public void completarTutoria(Long estudianteId, Long tutorId) {
+        String cypher = """
+            MATCH (e:Estudiante)-[r:RECOMIENDA]->(t:Tutor)
+            WHERE id(e) = $eId AND id(t) = $tId
+            SET r.estado = 'COMPLETADO', r.fechaCompletado = $fecha
+            """;
+        neo4jClient.query(cypher)
+                .bind(estudianteId).to("eId")
+                .bind(tutorId).to("tId")
+                .bind(LocalDate.now().toString()).to("fecha")
+                .run();
+    }
+
+    // Lista los tutores guardados por el estudiante con su estado
+    @SuppressWarnings("unchecked")
+    public List<TutorGuardadoDTO> listarGuardados(Long estudianteId) {
+        String cypher = """
+            MATCH (e:Estudiante)-[r:RECOMIENDA]->(t:Tutor)
+            WHERE id(e) = $eId
+            OPTIONAL MATCH (t)-[:ENSENA]->(c:Curso)
+            WITH t, r, collect(c.nombre) AS cursos
+            RETURN
+              id(t)                              AS id,
+              t.nombre                           AS nombre,
+              coalesce(t.carrera, '')            AS carrera,
+              coalesce(t.semestre, 0)            AS semestre,
+              coalesce(t.email, '')              AS email,
+              coalesce(t.rating, 0.0)            AS rating,
+              coalesce(t.precio, 0.0)            AS precio,
+              coalesce(t.modalidad, '')          AS modalidad,
+              cursos,
+              coalesce(r.estado, 'PENDIENTE')    AS estado,
+              coalesce(r.fecha, '')              AS fecha
+            ORDER BY r.fecha DESC
+            """;
+        return neo4jClient.query(cypher)
+                .bind(estudianteId).to("eId")
+                .fetch()
+                .all()
+                .stream()
+                .map(this::mapGuardado)
+                .toList();
+    }
+
+    private TutorGuardadoDTO mapGuardado(Map<String, Object> row) {
+        TutorGuardadoDTO dto = new TutorGuardadoDTO();
+        dto.setId(toLong(row.get("id")));
+        dto.setNombre((String) row.get("nombre"));
+        dto.setCarrera((String) row.get("carrera"));
+        dto.setSemestre(toInt(row.get("semestre")));
+        dto.setEmail((String) row.get("email"));
+        dto.setRating(toDouble(row.get("rating")));
+        dto.setPrecio(toDouble(row.get("precio")));
+        dto.setModalidad((String) row.get("modalidad"));
+        dto.setCursos((List<String>) row.get("cursos"));
+        dto.setEstado((String) row.get("estado"));
+        dto.setFecha((String) row.get("fecha"));
+        return dto;
     }
 
     // ── Mapeo de fila Cypher → DTO ────────────────────────────────────────────

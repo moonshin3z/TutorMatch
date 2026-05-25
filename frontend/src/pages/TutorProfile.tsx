@@ -113,8 +113,11 @@ export default function TutorProfile() {
   const [reviews, setReviews]   = useState<Review[]>([])
   const [loading, setLoading]   = useState(true)
 
+  // Si viene desde "Guardados" con openReview=true, abre el form directamente
+  const openReviewOnMount = (location.state as { openReview?: boolean } | null)?.openReview === true
+
   // Estado del formulario de reseña
-  const [showForm, setShowForm]       = useState(false)
+  const [showForm, setShowForm] = useState(openReviewOnMount)
   const [stars, setStars]             = useState(5)
   const [reviewText, setReviewText]   = useState('')
   const [submitting, setSubmitting]   = useState(false)

@@ -3,6 +3,7 @@ import api from '../api/client'
 import { useAuthStore } from '../store/authStore'
 import TutorCard, { type Recomendacion } from '../components/TutorCard'
 import SearchModal from '../components/SearchModal'
+import GuardadoCard, { type TutorGuardado } from '../components/GuardadoCard'
 
 interface Curso   { codigo: string; nombre: string }
 interface Horario { id: number; dia: string; horaInicio: string; horaFin: string }
@@ -47,7 +48,8 @@ function greeting(nombre: string) {
 export default function StudentDashboard() {
   const { id, nombre } = useAuthStore()
 
-  const [tab, setTab]                             = useState<'feed' | 'perfil'>('feed')
+  const [tab, setTab]                             = useState<'feed' | 'guardados' | 'perfil'>('feed')
+  const [guardados, setGuardados]                 = useState<TutorGuardado[]>([])
   const [recs, setRecs]                           = useState<Recomendacion[]>([])
   const [perfil, setPerfil]                       = useState<Perfil | null>(null)
   const [allCursos, setAllCursos]                 = useState<Curso[]>([])
@@ -74,14 +76,16 @@ export default function StudentDashboard() {
   const fetchAll = async (showLoading = true) => {
     if (showLoading) setLoading(true)
     try {
-      const [recsRes, perfilRes, cursosRes, horariosRes, nivelesRes] = await Promise.all([
+      const [recsRes, perfilRes, guardadosRes, cursosRes, horariosRes, nivelesRes] = await Promise.all([
         api.get(`/recomendaciones/${id}`),
         api.get(`/estudiantes/${id}`),
+        api.get(`/recomendaciones/${id}/guardados`),
         api.get('/cursos'),
         api.get('/horarios'),
         api.get('/niveles'),
       ])
       setRecs(recsRes.data)
+      setGuardados(guardadosRes.data)
       const p = perfilRes.data
       setPerfil(p)
       setEditCarrera(p.carrera ?? '')
@@ -97,13 +101,16 @@ export default function StudentDashboard() {
   useEffect(() => { fetchAll() }, [id])
 
   // Al volver al feed después de editar perfil, refresca sin flicker
-  const handleTabChange = (newTab: 'feed' | 'perfil') => {
+  const handleTabChange = (newTab: 'feed' | 'guardados' | 'perfil') => {
     if (newTab === 'feed' && profileDirty) {
       fetchAll(false)
       setProfileDirty(false)
     }
     setTab(newTab)
   }
+
+  const pendientes  = guardados.filter(g => g.estado === 'PENDIENTE')
+  const completados = guardados.filter(g => g.estado === 'COMPLETADO')
 
   // ── Filtrado + ordenamiento client-side ─────────────────────────────────
   const filtered = recs
@@ -194,9 +201,21 @@ export default function StudentDashboard() {
           onClick={() => handleTabChange('feed')}
           className={tab === 'feed' ? 'tab-item-active' : 'tab-item-inactive'}
         >
-          Mis tutores
+          Buscar
           {profileDirty && tab === 'perfil' && (
             <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-uvg-green inline-block" />
+          )}
+        </button>
+        <button
+          onClick={() => handleTabChange('guardados')}
+          className={tab === 'guardados' ? 'tab-item-active' : 'tab-item-inactive'}
+        >
+          Guardados
+          {pendientes.length > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center
+              w-4 h-4 rounded-full bg-uvg-green text-white text-2xs font-bold">
+              {pendientes.length}
+            </span>
           )}
         </button>
         <button
@@ -354,6 +373,60 @@ export default function StudentDashboard() {
               <p className="empty-state-body">Probá quitando algún filtro para ver más opciones.</p>
               <button onClick={() => setFilters(EMPTY_FILTERS)} className="btn-secondary mt-4">
                 Quitar filtros
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════ GUARDADOS ════════════════════════ */}
+      {tab === 'guardados' && (
+        <div className="space-y-6">
+
+          {/* Pendientes */}
+          {pendientes.length > 0 && (
+            <div>
+              <p className="label-meta mb-3">Por hacer · {pendientes.length}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {pendientes.map(t => (
+                  <GuardadoCard
+                    key={t.id}
+                    tutor={t}
+                    onActualizado={() => fetchAll(false)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Completados */}
+          {completados.length > 0 && (
+            <div>
+              <p className="label-meta mb-3">Completadas · {completados.length}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {completados.map(t => (
+                  <GuardadoCard
+                    key={t.id}
+                    tutor={t}
+                    onActualizado={() => fetchAll(false)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {guardados.length === 0 && (
+            <div className="empty-state border border-uvg-border rounded-md">
+              <p className="empty-state-title">Todavía no guardaste ningún tutor</p>
+              <p className="empty-state-body">
+                Desde el feed, hacé clic en "Solicitar tutoría" en el perfil de un tutor para guardarlo aquí.
+              </p>
+              <button
+                onClick={() => handleTabChange('feed')}
+                className="btn-primary mt-4"
+              >
+                Ir al feed →
               </button>
             </div>
           )}
