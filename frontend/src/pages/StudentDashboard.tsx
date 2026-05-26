@@ -189,7 +189,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-5 pb-24">
+    <div className="max-w-5xl mx-auto px-4 pt-5 pb-24">
 
       {/* Flash */}
       {flash && (
@@ -322,9 +322,9 @@ export default function StudentDashboard() {
 
           {/* Cards */}
           {filtered.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map(t => (
-                <TutorCard key={t.id} tutor={t} highlight={t.score > 12} />
+                <TutorCard key={t.id} tutor={t} />
               ))}
             </div>
           ) : recs.length === 0 ? (

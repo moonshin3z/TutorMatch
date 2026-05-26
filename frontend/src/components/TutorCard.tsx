@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 
+// ── Interfaz ──────────────────────────────────────────────────────────────────
 export interface Recomendacion {
   id: number
   nombre: string
@@ -7,6 +8,7 @@ export interface Recomendacion {
   semestre: number
   emailTutor: string
   rating: number
+  totalReviews: number
   experiencia: number
   nivel: string
   cursos: string[]
@@ -20,138 +22,152 @@ export interface Recomendacion {
   fotoUrl: string
 }
 
-interface Props {
-  tutor: Recomendacion
-  highlight?: boolean   // true cuando score > 12
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Genera color de fondo del avatar según inicial del nombre
-const AVATAR_COLORS = [
+// Ordinal español para año/semestre
+const ORDINALS: Record<number, string> = {
+  1: '1er', 2: '2do', 3: '3er', 4: '4to',
+  5: '5to', 6: '6to', 7: '7mo', 8: '8vo', 9: '9no', 10: '10mo',
+}
+function ordinal(n: number) { return ORDINALS[n] ?? `${n}°` }
+
+// Paleta de fondos para el avatar — 4 tonos editoriales
+const PALETA = [
   'bg-[#EEF4F1] text-[#1F3D2B]',
   'bg-[#EEF0FA] text-[#1E3A5F]',
   'bg-[#FDF3EE] text-[#7A3B1F]',
-  'bg-[#F3EEF4] text-[#4A1F6B]',
+  'bg-[#F4F0F9] text-[#4A1F6B]',
 ]
-function avatarColor(nombre: string) {
-  return AVATAR_COLORS[nombre.charCodeAt(0) % AVATAR_COLORS.length]
+function bgAvatar(n: string) { return PALETA[n.charCodeAt(0) % PALETA.length] }
+function iniciales(n: string) {
+  return n.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()
 }
 
-function initials(nombre: string) {
-  return nombre.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+// ── Estrella SVG custom (NO Lucide, NO amarilla) ──────────────────────────────
+function StarSVG() {
+  return (
+    <svg
+      width="12" height="12"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M12 2l2.9 6.2 6.7.9-4.9 4.7 1.2 6.6L12 17.2l-5.9 3.2 1.2-6.6L2.4 9.1l6.7-.9z" />
+    </svg>
+  )
 }
 
-function ModalidadBadge({ modalidad }: { modalidad: string }) {
-  if (!modalidad) return null
-  const map: Record<string, { label: string; cls: string }> = {
-    VIRTUAL:    { label: 'Virtual',     cls: 'badge-blue' },
-    PRESENCIAL: { label: 'Presencial',  cls: 'badge-gray' },
-    AMBAS:      { label: 'V + P',       cls: 'badge-gray' },
+// ── Rating display ─────────────────────────────────────────────────────────────
+// < 5 reseñas → "Nuevo" · Rating 5.0 siempre con decimal
+function Rating({ rating, total }: { rating: number; total: number }) {
+  if (total < 5 || rating === 0) {
+    return (
+      <span className="text-[11px] text-[#6B6B66] border border-[#E5E5E2]
+        rounded-sm px-1.5 py-0.5 leading-none">
+        Nuevo
+      </span>
+    )
   }
-  const m = map[modalidad] ?? { label: modalidad, cls: 'badge-gray' }
-  return <span className={m.cls}>{m.label}</span>
+  const str = rating === 5 ? '5.0' : rating.toFixed(1)
+  return (
+    <span className="flex items-center gap-[5px] text-[13px] text-[#1A1A1A]">
+      <StarSVG />
+      <span className="font-[500]">{str}</span>
+      <span className="text-[#6B6B66]">({total})</span>
+    </span>
+  )
 }
 
-export default function TutorCard({ tutor, highlight }: Props) {
+// ── Componente principal ──────────────────────────────────────────────────────
+interface Props {
+  tutor: Recomendacion
+  highlight?: boolean  // mantenido por compatibilidad, no se usa visualmente
+}
+
+export default function TutorCard({ tutor }: Props) {
   const navigate = useNavigate()
 
-  // Top 2 match reasons — si hay más, se truncan
-  const reasons = tutor.matchReasons?.slice(0, 3) ?? []
+  const materias       = tutor.cursos ?? []
+  const visibles       = materias.slice(0, 3)
+  const extras         = materias.length - 3
+  const topReason      = tutor.matchReasons?.[0] ?? ''
+  const añoSemestre    = tutor.semestre > 0
+    ? ` · ${ordinal(tutor.semestre)} año`
+    : ''
 
   return (
     <article
-      className={`
-        bg-uvg-surface rounded-md border border-uvg-border
-        flex flex-col
-        transition-colors duration-150
-        hover:border-uvg-border-strong
-        ${highlight ? 'border-l-[3px] border-l-uvg-green' : ''}
-      `}
+      onClick={() => navigate(`/tutor/${tutor.id}`, {
+        state: { matchReasons: tutor.matchReasons, score: tutor.score }
+      })}
+      className="
+        bg-white border border-[#E5E5E2] rounded-[8px] p-4
+        cursor-pointer transition-colors duration-150
+        hover:border-[#1F3D2B]
+      "
     >
-      {/* ── Cuerpo ── */}
-      <div className="p-4 flex flex-col gap-3 flex-1">
+      {/* Layout horizontal asimétrico — inspirado en Letterboxd */}
+      <div className="flex gap-3">
 
-        {/* Header: avatar + info básica */}
-        <div className="flex items-start gap-3">
-          {/* Avatar cuadrado con iniciales */}
-          <div className={`
-            w-12 h-12 rounded-md flex-shrink-0
-            flex items-center justify-center
-            text-sm font-semibold select-none
-            ${avatarColor(tutor.nombre)}
-          `}>
-            {initials(tutor.nombre)}
-          </div>
-
-          {/* Nombre + metadata */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-uvg-text leading-tight truncate">
-              {tutor.nombre}
-            </p>
-            {tutor.carrera ? (
-              <p className="text-xs text-uvg-muted mt-0.5">
-                {tutor.carrera}
-                {tutor.semestre > 0 && ` · ${tutor.semestre}° semestre`}
-              </p>
-            ) : (
-              <p className="text-xs text-uvg-muted mt-0.5">
-                {tutor.experiencia > 0
-                  ? `${tutor.experiencia} año${tutor.experiencia !== 1 ? 's' : ''} de experiencia`
-                  : 'Tutor nuevo'}
-              </p>
-            )}
-            {/* Rating + precio + modalidad */}
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <span className="text-xs font-medium text-uvg-text">
-                ★ <span className="text-amber-500">{tutor.rating > 0 ? tutor.rating.toFixed(1) : '—'}</span>
-              </span>
-              {tutor.precio > 0 && (
-                <span className="text-xs text-uvg-muted font-mono">Q{tutor.precio}/hr</span>
-              )}
-              <ModalidadBadge modalidad={tutor.modalidad} />
-            </div>
-          </div>
+        {/* Avatar cuadrado — 96×96 mobile, 120×120 desktop, NO círculo */}
+        <div className={`
+          w-24 h-24 md:w-[120px] md:h-[120px]
+          rounded-[6px] flex-shrink-0
+          flex items-center justify-center
+          text-[15px] font-semibold select-none
+          ${bgAvatar(tutor.nombre)}
+        `}>
+          {iniciales(tutor.nombre)}
         </div>
 
-        {/* Cursos */}
-        {tutor.cursos?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {tutor.cursos.slice(0, 3).map(c => (
-              <span key={c} className="badge-gray">{c}</span>
-            ))}
-            {tutor.cursos.length > 3 && (
-              <span className="badge-gray">+{tutor.cursos.length - 3}</span>
-            )}
-          </div>
-        )}
+        {/* Info — jerarquía tipográfica, sin color como muleta */}
+        <div className="flex-1 min-w-0 flex flex-col gap-[5px]">
 
-        {/* Match reasons */}
-        {reasons.length > 0 && (
-          <div className="border-t border-uvg-border pt-3">
-            <p className="text-2xs font-semibold text-uvg-muted uppercase tracking-wider mb-2">
-              Por qué es match
+          {/* Nombre: dominante, 18px */}
+          <p className="text-[18px] font-[500] text-[#1A1A1A] leading-tight truncate">
+            {tutor.nombre}
+          </p>
+
+          {/* Carrera · año: secundario, 13px */}
+          {tutor.carrera && (
+            <p className="text-[13px] text-[#6B6B66] leading-snug">
+              {tutor.carrera}{añoSemestre}
             </p>
-            <ul className="space-y-1">
-              {reasons.map((r, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-xs text-uvg-muted leading-snug">
-                  <span className="text-uvg-green mt-[2px] flex-shrink-0">●</span>
-                  {r}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          )}
+
+          {/* Materias: separadas por ·, no badges */}
+          {visibles.length > 0 && (
+            <p className="text-[13px] text-[#1A1A1A] leading-snug">
+              {visibles.join(' · ')}
+              {extras > 0 && (
+                <span className="text-[#6B6B66]"> +{extras} más</span>
+              )}
+            </p>
+          )}
+
+          {/* Reason en itálica — el valor real del producto */}
+          {topReason && (
+            <p className="
+              text-[13px] italic text-[#1A1A1A] leading-snug
+              overflow-hidden
+              [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]
+            ">
+              {topReason}
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* ── Footer ── */}
-      <div className="px-4 pb-4">
-        <button
-          onClick={() => navigate(`/tutor/${tutor.id}`, {
-            state: { matchReasons: tutor.matchReasons, score: tutor.score }
-          })}
-          className="w-full btn-secondary text-xs py-2"
-        >
-          Ver perfil completo →
-        </button>
+      {/* Footer: rating izquierda · precio derecha — mismo baseline */}
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#E5E5E2]">
+        <Rating rating={tutor.rating} total={tutor.totalReviews} />
+        {tutor.precio > 0 ? (
+          <span className="text-[16px] font-[500] text-[#1A1A1A]">
+            Q{tutor.precio}/hr
+          </span>
+        ) : (
+          <span className="text-[13px] text-[#6B6B66]">Sin precio definido</span>
+        )}
       </div>
     </article>
   )

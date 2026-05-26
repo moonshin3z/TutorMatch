@@ -14,10 +14,11 @@ public class RecomendacionDTO {
     private List<String> horarios;
     private int score;
 
-    // Identidad académica del tutor — Fase A
+    // Identidad académica del tutor
     private String carrera;
     private int semestre;
     private String emailTutor;
+    private int totalReviews;
 
     // Campos enriquecidos — Fase 2
     private List<String> matchReasons;
