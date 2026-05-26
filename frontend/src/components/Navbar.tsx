@@ -2,35 +2,32 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
 export default function Navbar() {
-  const { nombre, role, logout } = useAuthStore()
+  const { nombre, logout } = useAuthStore()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
-
   return (
-    <header className="bg-white border-b border-uvg-border sticky top-0 z-10">
-      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-uvg-green font-bold text-lg tracking-tight">TutorMatch</span>
-          <span className="text-uvg-muted text-sm">— UVG</span>
+    <header className="bg-uvg-surface border-b border-uvg-border sticky top-0 z-10">
+      <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
+        {/* Logo */}
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-uvg-green font-bold text-base tracking-tight">TutorMatch</span>
+          <span className="text-uvg-subtle text-xs">UVG</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          {nombre && (
-            <>
-              <span className="text-sm text-uvg-muted hidden sm:block">
-                {role === 'ESTUDIANTE' ? 'Estudiante' : 'Tutor'} ·{' '}
-                <span className="text-uvg-text font-medium">{nombre}</span>
-              </span>
-              <button onClick={handleLogout} className="btn-secondary text-xs py-1.5">
-                Cerrar sesión
-              </button>
-            </>
-          )}
-        </div>
+        {/* Nombre + logout */}
+        {nombre && (
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-uvg-muted hidden sm:block truncate max-w-[160px]">
+              {nombre.split(' ')[0]}
+            </span>
+            <button
+              onClick={() => { logout(); navigate('/login') }}
+              className="text-xs text-uvg-subtle hover:text-uvg-muted transition-colors"
+            >
+              Salir
+            </button>
+          </div>
+        )}
       </div>
     </header>
   )

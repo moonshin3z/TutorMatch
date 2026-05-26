@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
 import { useAuthStore } from '../store/authStore'
+import BottomNav, { IconPerson, IconCalendar, IconStar } from '../components/BottomNav'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Curso   { codigo: string; nombre: string; departamento: string }
@@ -179,7 +180,7 @@ export default function TutorDashboard() {
   const activeIds = new Set(perfil.horarios.map(h => h.id))
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6">
+    <div className="max-w-xl mx-auto px-4 pt-5 pb-24">
 
       {/* Flash */}
       {flash && <div className="alert-success mb-4 animate-fade-up">{flash}</div>}
@@ -232,15 +233,17 @@ export default function TutorDashboard() {
         </div>
       )}
 
-      {/* ── Tabs ── */}
-      <div className="tab-bar mb-6">
-        {(['perfil','disponibilidad','reseñas'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={tab === t ? 'tab-item-active' : 'tab-item-inactive'}>
-            {t === 'perfil' ? 'Mi perfil' : t === 'disponibilidad' ? 'Disponibilidad' : `Reseñas${reviews.length > 0 ? ` (${reviews.length})` : ''}`}
-          </button>
-        ))}
-      </div>
+      {/* ── Bottom navigation (reemplaza tabs del top) ── */}
+      <BottomNav
+        active={tab}
+        onChange={v => setTab(v as Tab)}
+        items={[
+          { value: 'perfil',        label: 'Mi perfil',     icon: IconPerson   },
+          { value: 'disponibilidad', label: 'Horarios',      icon: IconCalendar },
+          { value: 'reseñas',       label: 'Reseñas',       icon: IconStar,
+            badge: reviews.length > 0 ? reviews.length : undefined },
+        ]}
+      />
 
       {/* ══════════════════════════ TAB: PERFIL ══════════════════════════════ */}
       {tab === 'perfil' && (

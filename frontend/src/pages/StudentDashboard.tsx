@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import TutorCard, { type Recomendacion } from '../components/TutorCard'
 import SearchModal from '../components/SearchModal'
 import GuardadoCard, { type TutorGuardado } from '../components/GuardadoCard'
+import BottomNav, { IconSearch, IconBookmark, IconPerson } from '../components/BottomNav'
 
 interface Curso   { codigo: string; nombre: string }
 interface Horario { id: number; dia: string; horaInicio: string; horaFin: string }
@@ -188,43 +189,12 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 pt-5 pb-24">
 
       {/* Flash */}
       {flash && (
         <div className="alert-success mb-4">{flash}</div>
       )}
-
-      {/* Tabs */}
-      <div className="tab-bar mb-6">
-        <button
-          onClick={() => handleTabChange('feed')}
-          className={tab === 'feed' ? 'tab-item-active' : 'tab-item-inactive'}
-        >
-          Buscar
-          {profileDirty && tab === 'perfil' && (
-            <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-uvg-green inline-block" />
-          )}
-        </button>
-        <button
-          onClick={() => handleTabChange('guardados')}
-          className={tab === 'guardados' ? 'tab-item-active' : 'tab-item-inactive'}
-        >
-          Guardados
-          {pendientes.length > 0 && (
-            <span className="ml-1.5 inline-flex items-center justify-center
-              w-4 h-4 rounded-full bg-uvg-green text-white text-2xs font-bold">
-              {pendientes.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => handleTabChange('perfil')}
-          className={tab === 'perfil' ? 'tab-item-active' : 'tab-item-inactive'}
-        >
-          Mi perfil
-        </button>
-      </div>
 
       {/* ══════════════════════════════════════ FEED ══════════════════════════ */}
       {tab === 'feed' && (
@@ -557,6 +527,30 @@ export default function StudentDashboard() {
           </p>
         </div>
       )}
+
+      {/* Bottom navigation */}
+      <BottomNav
+        active={tab}
+        onChange={v => handleTabChange(v as 'feed' | 'guardados' | 'perfil')}
+        items={[
+          {
+            value: 'feed',
+            label: 'Buscar',
+            icon: IconSearch,
+          },
+          {
+            value: 'guardados',
+            label: 'Guardados',
+            icon: IconBookmark,
+            badge: pendientes.length,
+          },
+          {
+            value: 'perfil',
+            label: 'Mi perfil',
+            icon: IconPerson,
+          },
+        ]}
+      />
 
       {/* Modal de búsqueda */}
       <SearchModal
