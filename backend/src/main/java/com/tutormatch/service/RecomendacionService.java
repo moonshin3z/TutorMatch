@@ -144,6 +144,7 @@ public class RecomendacionService {
               coalesce(t.rating, 0.0)            AS rating,
               coalesce(t.precio, 0.0)            AS precio,
               coalesce(t.modalidad, '')          AS modalidad,
+              coalesce(t.totalReviews, 0)        AS totalReviews,
               cursos,
               coalesce(r.estado, 'PENDIENTE')    AS estado,
               coalesce(r.fecha, '')              AS fecha
@@ -168,10 +169,24 @@ public class RecomendacionService {
         dto.setRating(toDouble(row.get("rating")));
         dto.setPrecio(toDouble(row.get("precio")));
         dto.setModalidad((String) row.get("modalidad"));
+        dto.setTotalReviews(toInt(row.get("totalReviews")));
         dto.setCursos((List<String>) row.get("cursos"));
         dto.setEstado((String) row.get("estado"));
         dto.setFecha((String) row.get("fecha"));
         return dto;
+    }
+
+    // Devuelve el estado de la sesión (PENDIENTE, COMPLETADO, o null si no existe)
+    public String getSesionEstado(Long estudianteId, Long tutorId) {
+        var result = neo4jClient.query("""
+            MATCH (e:Estudiante)-[r:RECOMIENDA]->(t:Tutor)
+            WHERE id(e) = $eId AND id(t) = $tId
+            RETURN r.estado AS estado
+            """)
+                .bind(estudianteId).to("eId")
+                .bind(tutorId).to("tId")
+                .fetch().one();
+        return result.map(r -> (String) r.get("estado")).orElse(null);
     }
 
     // ── Mapeo de fila Cypher → DTO ────────────────────────────────────────────

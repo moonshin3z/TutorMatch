@@ -14,6 +14,7 @@ public class TutorGuardadoDTO {
     private double precio;
     private String modalidad;
     private List<String> cursos;
+    private int totalReviews;
     private String estado;      // PENDIENTE | COMPLETADO
-    private String fecha;       // fecha en que se guardó
+    private String fecha;
 }

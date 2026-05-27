@@ -35,6 +35,14 @@ public class RecomendacionController {
         return ResponseEntity.ok(service.listarGuardados(estudianteId));
     }
 
+    @GetMapping("/{estudianteId}/sesion/{tutorId}")
+    public ResponseEntity<java.util.Map<String, Object>> getSesionEstado(
+            @PathVariable Long estudianteId,
+            @PathVariable Long tutorId) {
+        String estado = service.getSesionEstado(estudianteId, tutorId);
+        return ResponseEntity.ok(java.util.Map.of("estado", estado != null ? estado : "NINGUNA"));
+    }
+
     @PutMapping("/{estudianteId}/completar/{tutorId}")
     public ResponseEntity<Void> completarTutoria(
             @PathVariable Long estudianteId,

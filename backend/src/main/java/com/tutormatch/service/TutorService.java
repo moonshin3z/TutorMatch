@@ -128,8 +128,24 @@ public class TutorService {
     // ── Reviews ───────────────────────────────────────────────────────────────
 
     public void agregarReview(Long tutorId, Long estudianteId, ReviewRequest req) {
-        // Verifica que el tutor existe
         obtener(tutorId);
+
+        // Solo se puede reseñar si el estudiante completó una sesión con este tutor
+        var sesion = neo4jClient.query("""
+            MATCH (e:Estudiante)-[r:RECOMIENDA]->(t:Tutor)
+            WHERE id(e) = $eId AND id(t) = $tId AND r.estado = 'COMPLETADO'
+            RETURN count(r) AS n
+            """)
+                .bind(estudianteId).to("eId")
+                .bind(tutorId).to("tId")
+                .fetch().one();
+        boolean autorizado = sesion.map(r -> ((Number) r.get("n")).longValue() > 0).orElse(false);
+        if (!autorizado) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN,
+                "Debés completar una sesión con este tutor antes de dejar una reseña"
+            );
+        }
 
         String crearReview = """
             MATCH (e:Estudiante) WHERE id(e) = $eId

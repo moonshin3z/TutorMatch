@@ -111,12 +111,10 @@ export default function TutorProfile() {
 
   const [tutor, setTutor]       = useState<Tutor | null>(null)
   const [reviews, setReviews]   = useState<Review[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [loading, setLoading]         = useState(true)
+  const [sesionEstado, setSesionEstado] = useState<'PENDIENTE' | 'COMPLETADO' | 'NINGUNA'>('NINGUNA')
 
-  // Si viene desde "Guardados" con openReview=true, abre el form directamente
   const openReviewOnMount = (location.state as { openReview?: boolean } | null)?.openReview === true
-
-  // Estado del formulario de reseña
   const [showForm, setShowForm] = useState(openReviewOnMount)
   const [stars, setStars]             = useState(5)
   const [reviewText, setReviewText]   = useState('')
@@ -130,12 +128,17 @@ export default function TutorProfile() {
   )
 
   const fetchData = async () => {
-    const [tutorRes, reviewsRes] = await Promise.all([
+    const requests: Promise<any>[] = [
       api.get(`/tutores/${id}`),
       api.get(`/tutores/${id}/reviews`),
-    ])
+    ]
+    if (role === 'ESTUDIANTE' && userId) {
+      requests.push(api.get(`/recomendaciones/${userId}/sesion/${id}`))
+    }
+    const [tutorRes, reviewsRes, sesionRes] = await Promise.all(requests)
     setTutor(tutorRes.data)
     setReviews(reviewsRes.data)
+    if (sesionRes) setSesionEstado(sesionRes.data.estado)
   }
 
   useEffect(() => {
@@ -348,7 +351,8 @@ export default function TutorProfile() {
               <span className="text-uvg-muted font-normal text-xs ml-2">({reviews.length})</span>
             )}
           </h2>
-          {isStudent && !reviewSent && (
+          {/* Gate: solo muestra el botón si tiene sesión COMPLETADO */}
+          {isStudent && !reviewSent && sesionEstado === 'COMPLETADO' && (
             <button
               onClick={() => setShowForm(v => !v)}
               className="text-xs text-uvg-green font-medium hover:underline"
@@ -357,6 +361,25 @@ export default function TutorProfile() {
             </button>
           )}
         </div>
+
+        {/* Aviso si hay sesión pendiente */}
+        {isStudent && !reviewSent && sesionEstado === 'PENDIENTE' && (
+          <div className="text-xs text-uvg-muted bg-[#FAFAF7] border border-uvg-border
+            rounded px-3 py-2 mb-4">
+            Marcá la sesión como completada en{' '}
+            <span className="text-uvg-green font-medium">Guardados</span>{' '}
+            para poder dejar una reseña.
+          </div>
+        )}
+
+        {/* Aviso si nunca guardó a este tutor */}
+        {isStudent && !reviewSent && sesionEstado === 'NINGUNA' && (
+          <div className="text-xs text-uvg-muted bg-[#FAFAF7] border border-uvg-border
+            rounded px-3 py-2 mb-4">
+            Solicitá una tutoría con {tutor.nombre.split(' ')[0]} y completala
+            para poder dejar una reseña.
+          </div>
+        )}
 
         {/* Formulario de reseña */}
         {showForm && (
