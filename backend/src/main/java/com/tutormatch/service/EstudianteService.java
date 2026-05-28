@@ -107,10 +107,11 @@ public class EstudianteService {
         estudianteRepo.save(e);
     }
 
-    public void actualizarPerfil(Long estudianteId, String carrera, Integer semestre) {
+    public void actualizarPerfil(Long estudianteId, String carrera, Integer semestre, Double presupuesto) {
         Estudiante e = obtener(estudianteId);
         if (carrera != null && !carrera.isBlank()) e.setCarrera(carrera);
         if (semestre != null && semestre >= 1) e.setSemestre(semestre);
+        if (presupuesto != null && presupuesto >= 0) e.setPresupuestoMaximo(presupuesto);
         estudianteRepo.save(e);
     }
 

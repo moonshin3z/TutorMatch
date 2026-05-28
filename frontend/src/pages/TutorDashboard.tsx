@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
 import { useAuthStore } from '../store/authStore'
-import BottomNav, { IconPerson, IconCalendar, IconStar } from '../components/BottomNav'
+import BottomNav, { IconPerson, IconCalendar, IconStar, IconInbox } from '../components/BottomNav'
+import SolicitudCard, { type EstudianteSolicitud } from '../components/SolicitudCard'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Curso   { codigo: string; nombre: string; departamento: string }
@@ -26,7 +27,7 @@ interface Stats {
   totalCursos: number
 }
 
-type Tab = 'perfil' | 'disponibilidad' | 'reseñas'
+type Tab = 'perfil' | 'solicitudes' | 'disponibilidad' | 'reseñas'
 
 const DAYS_ORDER = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
 const MODALIDADES = [
@@ -69,9 +70,10 @@ export default function TutorDashboard() {
   const [allCursos, setAllCursos]   = useState<Curso[]>([])
   const [allHorarios, setAllHorarios] = useState<Horario[]>([])
   const [allNiveles, setAllNiveles]   = useState<Nivel[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [flash, setFlash]       = useState('')
-  const [stats, setStats]       = useState<Stats | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [flash, setFlash]           = useState('')
+  const [stats, setStats]           = useState<Stats | null>(null)
+  const [solicitudes, setSolicitudes] = useState<EstudianteSolicitud[]>([])
 
   // Estado del formulario de perfil
   const [bio, setBio]           = useState('')
@@ -84,15 +86,17 @@ export default function TutorDashboard() {
   const fetchAll = async () => {
     setLoading(true)
     try {
-      const [perfilRes, reviewsRes, statsRes, cursosRes, horariosRes, nivelesRes] = await Promise.all([
+      const [perfilRes, reviewsRes, statsRes, solicitudesRes, cursosRes, horariosRes, nivelesRes] = await Promise.all([
         api.get(`/tutores/${id}`),
         api.get(`/tutores/${id}/reviews`),
         api.get(`/tutores/${id}/stats`),
+        api.get(`/tutores/${id}/solicitudes`),
         api.get('/cursos'),
         api.get('/horarios'),
         api.get('/niveles'),
       ])
       setStats(statsRes.data)
+      setSolicitudes(solicitudesRes.data)
       const p: Perfil = perfilRes.data
       setPerfil(p)
       setReviews(reviewsRes.data)
@@ -233,19 +237,44 @@ export default function TutorDashboard() {
         </div>
       )}
 
-      {/* ── Bottom navigation (reemplaza tabs del top) ── */}
+      {/* ── Bottom navigation con 4 ítems ── */}
       <BottomNav
         active={tab}
         onChange={v => setTab(v as Tab)}
         items={[
-          { value: 'perfil',        label: 'Mi perfil',     icon: IconPerson   },
-          { value: 'disponibilidad', label: 'Horarios',      icon: IconCalendar },
-          { value: 'reseñas',       label: 'Reseñas',       icon: IconStar,
-            badge: reviews.length > 0 ? reviews.length : undefined },
+          { value: 'perfil',         label: 'Perfil',       icon: IconPerson                          },
+          { value: 'solicitudes',    label: 'Solicitudes',  icon: IconInbox,
+            badge: solicitudes.filter(s => s.estado === 'PENDIENTE').length || undefined },
+          { value: 'disponibilidad', label: 'Horarios',     icon: IconCalendar                        },
+          { value: 'reseñas',        label: 'Reseñas',      icon: IconStar,
+            badge: reviews.length > 0 ? reviews.length : undefined                       },
         ]}
       />
 
       {/* ══════════════════════════ TAB: PERFIL ══════════════════════════════ */}
+      {/* ══════════════════════════════════ SOLICITUDES ═══════════════════════ */}
+      {tab === 'solicitudes' && (
+        <div className="space-y-4">
+          <p className="text-sm text-uvg-muted">
+            Estudiantes que te guardaron como tutor. Podés contactarlos directamente.
+          </p>
+          {solicitudes.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {solicitudes.map(s => (
+                <SolicitudCard key={s.id} solicitud={s} />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state border border-uvg-border rounded-md">
+              <p className="empty-state-title">Todavía no hay solicitudes</p>
+              <p className="empty-state-body">
+                Cuando un estudiante te guarde en su lista, aparecerá aquí.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {tab === 'perfil' && (
         <div className="space-y-4">
 

@@ -1,6 +1,7 @@
 package com.tutormatch.service;
 
 import com.tutormatch.domain.Tutor;
+import com.tutormatch.dto.EstudianteSolicitudDTO;
 import com.tutormatch.dto.ReviewRequest;
 import com.tutormatch.dto.ReviewResponse;
 import com.tutormatch.repository.*;
@@ -123,6 +124,52 @@ public class TutorService {
     public void eliminar(Long id) {
         obtener(id);
         tutorRepo.deleteById(id);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<EstudianteSolicitudDTO> listarSolicitudes(Long tutorId) {
+        obtener(tutorId);
+        String cypher = """
+            MATCH (e:Estudiante)-[r:RECOMIENDA]->(t:Tutor) WHERE id(t) = $tId
+            OPTIONAL MATCH (e)-[:TOMA]->(c:Curso)
+            OPTIONAL MATCH (e)-[:LIBRE_EN]->(h:Horario)
+            OPTIONAL MATCH (e)-[:BUSCA_NIVEL]->(n:Nivel)
+            WITH e, r, collect(DISTINCT c.nombre) AS cursos,
+                 collect(DISTINCT h.dia + ' ' + h.horaInicio + '-' + h.horaFin) AS horarios, n
+            RETURN
+              id(e)                              AS id,
+              e.nombre                           AS nombre,
+              coalesce(e.carrera, '')            AS carrera,
+              coalesce(e.semestre, 0)            AS semestre,
+              coalesce(e.email, '')              AS email,
+              coalesce(e.modalidadPreferida, '') AS modalidad,
+              coalesce(n.nombre, '')             AS nivel,
+              cursos,
+              horarios,
+              coalesce(r.estado, 'PENDIENTE')    AS estado,
+              coalesce(r.fecha, '')              AS fecha
+            ORDER BY r.fecha DESC
+            """;
+        return neo4jClient.query(cypher)
+                .bind(tutorId).to("tId")
+                .fetch().all()
+                .stream()
+                .map(row -> {
+                    EstudianteSolicitudDTO dto = new EstudianteSolicitudDTO();
+                    dto.setId(((Number) row.get("id")).longValue());
+                    dto.setNombre((String) row.get("nombre"));
+                    dto.setCarrera((String) row.get("carrera"));
+                    dto.setSemestre(row.get("semestre") != null ? ((Number) row.get("semestre")).intValue() : 0);
+                    dto.setEmail((String) row.get("email"));
+                    dto.setModalidad((String) row.get("modalidad"));
+                    dto.setNivel((String) row.get("nivel"));
+                    dto.setCursos((List<String>) row.get("cursos"));
+                    dto.setHorarios((List<String>) row.get("horarios"));
+                    dto.setEstado((String) row.get("estado"));
+                    dto.setFecha((String) row.get("fecha"));
+                    return dto;
+                })
+                .toList();
     }
 
     // ── Reviews ───────────────────────────────────────────────────────────────

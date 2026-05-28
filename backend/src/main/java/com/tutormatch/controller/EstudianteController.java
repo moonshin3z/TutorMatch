@@ -77,10 +77,10 @@ public class EstudianteController {
     @PutMapping("/{id}/perfil")
     public ResponseEntity<Void> actualizarPerfil(@PathVariable Long id,
                                                   @RequestBody Map<String, Object> body) {
-        String carrera  = (String) body.get("carrera");
-        Integer semestre = body.get("semestre") != null
-                ? ((Number) body.get("semestre")).intValue() : null;
-        service.actualizarPerfil(id, carrera, semestre);
+        String carrera   = (String) body.get("carrera");
+        Integer semestre = body.get("semestre")    != null ? ((Number) body.get("semestre")).intValue()       : null;
+        Double presupuesto = body.get("presupuesto") != null ? ((Number) body.get("presupuesto")).doubleValue() : null;
+        service.actualizarPerfil(id, carrera, semestre, presupuesto);
         return ResponseEntity.ok().build();
     }
 

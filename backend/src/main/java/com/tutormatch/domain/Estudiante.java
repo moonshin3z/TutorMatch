@@ -25,9 +25,9 @@ public class Estudiante {
     private String carrera;
     private int semestre;
 
-    // Campos enriquecidos — Fase 2
     private boolean onboardingCompleto;
     private String modalidadPreferida;  // PRESENCIAL | VIRTUAL | AMBAS
+    private double presupuestoMaximo;   // Q/hr máximo que puede pagar
 
     @Relationship(type = "TOMA")
     private List<Curso> cursos = new ArrayList<>();

@@ -60,6 +60,11 @@ public class RecomendacionService {
                            AND t.carrera = e.carrera THEN 2
                       ELSE 0
                     END
+                  + CASE
+                      WHEN e.presupuestoMaximo IS NOT NULL AND e.presupuestoMaximo > 0
+                           AND t.precio > 0 AND t.precio <= e.presupuestoMaximo THEN 2
+                      ELSE 0
+                    END
                  ) AS score
             RETURN
               id(t)                                                                AS id,
@@ -79,6 +84,7 @@ public class RecomendacionService {
               coalesce(t.semestre, 0)                                              AS semestreT,
               coalesce(t.email, '')                                                 AS emailT,
               coalesce(t.totalReviews, 0)                                          AS totalReviews,
+              coalesce(e.presupuestoMaximo, 0.0)                                  AS presupuestoE,
               coalesce(e.modalidadPreferida, '')                                   AS modalidadPreferida,
               recs,
               score
@@ -224,7 +230,9 @@ public class RecomendacionService {
                 toDouble(row.get("rating")),
                 toLong(row.get("recs")),
                 (String) row.get("modalidad"),
-                (String) row.get("modalidadPreferida")
+                (String) row.get("modalidadPreferida"),
+                toDouble(row.get("precio")),
+                toDouble(row.get("presupuestoE"))
         ));
 
         return dto;
@@ -241,7 +249,9 @@ public class RecomendacionService {
             double rating,
             long recs,
             String modalidad,
-            String modalidadPreferida) {
+            String modalidadPreferida,
+            double precioTutor,
+            double presupuestoMaximo) {
 
         List<String> reasons = new ArrayList<>();
 
@@ -297,6 +307,11 @@ public class RecomendacionService {
             } else if ("AMBAS".equals(modalidad)) {
                 reasons.add("Disponible presencial y virtual");
             }
+        }
+
+        // Presupuesto del estudiante
+        if (presupuestoMaximo > 0 && precioTutor > 0 && precioTutor <= presupuestoMaximo) {
+            reasons.add(String.format("Q%.0f/hr — dentro de tu presupuesto", precioTutor));
         }
 
         return reasons;

@@ -12,6 +12,7 @@ interface Nivel   { id: number; nombre: string }
 interface Perfil  {
   nombre: string; carrera: string; semestre: number; email: string
   modalidadPreferida: string
+  presupuestoMaximo: number
   cursos: Curso[]; horarios: Horario[]
   nivelBuscado: Nivel | null
 }
@@ -63,9 +64,10 @@ export default function StudentDashboard() {
   const [searchModalOpen, setSearchModalOpen] = useState(false)
 
   // Campos editables del perfil
-  const [editCarrera, setEditCarrera]   = useState('')
-  const [editSemestre, setEditSemestre] = useState('')
-  const [savingPerfil, setSavingPerfil] = useState(false)
+  const [editCarrera, setEditCarrera]         = useState('')
+  const [editSemestre, setEditSemestre]       = useState('')
+  const [editPresupuesto, setEditPresupuesto] = useState('')
+  const [savingPerfil, setSavingPerfil]       = useState(false)
 
   const setF = (k: keyof Filters, v: string) => setFilters(f => ({ ...f, [k]: v }))
   const anyFilter = filters.search || filters.materia || filters.nivel ||
@@ -91,6 +93,7 @@ export default function StudentDashboard() {
       setPerfil(p)
       setEditCarrera(p.carrera ?? '')
       setEditSemestre(p.semestre > 0 ? String(p.semestre) : '')
+      setEditPresupuesto(p.presupuestoMaximo > 0 ? String(p.presupuestoMaximo) : '')
       setAllCursos(cursosRes.data)
       setAllHorarios(horariosRes.data)
       setAllNiveles(nivelesRes.data.sort((a: Nivel & { valor: number }, b: Nivel & { valor: number }) => a.valor - b.valor))
@@ -162,8 +165,9 @@ export default function StudentDashboard() {
     setSavingPerfil(true)
     try {
       await api.put(`/estudiantes/${id}/perfil`, {
-        carrera: editCarrera.trim(),
-        semestre: editSemestre ? Number(editSemestre) : null,
+        carrera:     editCarrera.trim(),
+        semestre:    editSemestre    ? Number(editSemestre)    : null,
+        presupuesto: editPresupuesto ? Number(editPresupuesto) : null,
       })
       showFlash('Información actualizada'); markDirty(); fetchAll(false)
     } finally {
@@ -437,6 +441,23 @@ export default function StudentDashboard() {
                 </select>
               </div>
             </div>
+            {/* Presupuesto */}
+            <div className="mt-4">
+              <label className="form-label">Presupuesto máximo (Q/hr)</label>
+              <input
+                type="number"
+                min="0"
+                max="500"
+                value={editPresupuesto}
+                onChange={e => setEditPresupuesto(e.target.value)}
+                placeholder="Ej. 75 — dejá vacío si no tenés límite"
+                className="form-input"
+              />
+              <p className="form-hint">
+                Tutores dentro de tu presupuesto reciben +2 puntos en el score.
+              </p>
+            </div>
+
             <button
               onClick={savePerfilInfo}
               disabled={savingPerfil || !editCarrera.trim()}

@@ -1,6 +1,7 @@
 package com.tutormatch.controller;
 
 import com.tutormatch.domain.Tutor;
+import com.tutormatch.dto.EstudianteSolicitudDTO;
 import com.tutormatch.dto.ReviewRequest;
 import com.tutormatch.dto.ReviewResponse;
 import com.tutormatch.service.TutorService;
@@ -107,5 +108,10 @@ public class TutorController {
     @GetMapping("/{id}/stats")
     public ResponseEntity<Map<String, Object>> stats(@PathVariable Long id) {
         return ResponseEntity.ok(service.getStats(id));
+    }
+
+    @GetMapping("/{id}/solicitudes")
+    public ResponseEntity<List<EstudianteSolicitudDTO>> solicitudes(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listarSolicitudes(id));
     }
 }
