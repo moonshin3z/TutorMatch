@@ -128,17 +128,20 @@ export default function TutorProfile() {
   )
 
   const fetchData = async () => {
-    const requests: Promise<any>[] = [
+    // Carga principal — si falla, redirige al home
+    const [tutorRes, reviewsRes] = await Promise.all([
       api.get(`/tutores/${id}`),
       api.get(`/tutores/${id}/reviews`),
-    ]
-    if (role === 'ESTUDIANTE' && userId) {
-      requests.push(api.get(`/recomendaciones/${userId}/sesion/${id}`))
-    }
-    const [tutorRes, reviewsRes, sesionRes] = await Promise.all(requests)
+    ])
     setTutor(tutorRes.data)
     setReviews(reviewsRes.data)
-    if (sesionRes) setSesionEstado(sesionRes.data.estado)
+
+    // Sesión check es OPCIONAL — un fallo no debe romper la vista del perfil
+    if (role === 'ESTUDIANTE' && userId) {
+      api.get(`/recomendaciones/${userId}/sesion/${id}`)
+        .then(r => setSesionEstado(r.data.estado))
+        .catch(() => {}) // silently ignore
+    }
   }
 
   useEffect(() => {

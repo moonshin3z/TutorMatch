@@ -108,36 +108,48 @@ export default function GraphView() {
     return () => window.removeEventListener('resize', measure)
   }, [])
 
-  // Cargar datos del grafo
+  // Cargar datos del grafo — lee dimensiones del DOM al momento de la respuesta
+  // para evitar el stale-closure sobre dims (React state)
   useEffect(() => {
+    if (!id) return
     api.get(`/grafo/${id}`)
       .then(({ data }) => {
-        const w = dims.w, h = dims.h
+        const w = containerRef.current?.clientWidth  || window.innerWidth
+        const h = containerRef.current?.clientHeight
+             || Math.round(window.innerHeight * 0.65)
         const initialized: GNode[] = data.nodes.map((n: any) => ({
           ...n,
-          x: w / 2 + (Math.random() - 0.5) * w * 0.5,
-          y: h / 2 + (Math.random() - 0.5) * h * 0.5,
+          x: w / 2 + (Math.random() - 0.5) * w * 0.4,
+          y: h / 2 + (Math.random() - 0.5) * h * 0.4,
           vx: 0, vy: 0, fx: 0, fy: 0,
         }))
+        // Actualiza dims también para que el SVG tenga el tamaño correcto
+        setDims({ w, h })
         setNodes(initialized)
         setEdges(data.edges)
       })
       .finally(() => setLoading(false))
   }, [id])
 
-  // Loop de animación
+  // Loop de animación — depende solo de edges y nodes.length,
+  // no de dims (los bounds se leen de las dims actuales vía closure estable)
   useEffect(() => {
     if (nodes.length === 0) return
     let current = [...nodes]
+    const getDims = () => ({
+      w: containerRef.current?.clientWidth  || dims.w,
+      h: containerRef.current?.clientHeight || dims.h,
+    })
 
     const loop = () => {
-      tick(current, edges, dims.w, dims.h)
+      const { w, h } = getDims()
+      tick(current, edges, w, h)
       setNodes([...current])
       rafRef.current = requestAnimationFrame(loop)
     }
     rafRef.current = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [edges, dims, nodes.length])
+  }, [edges, nodes.length]) // sin dims — lo lee del DOM directamente
 
   if (loading) {
     return (
