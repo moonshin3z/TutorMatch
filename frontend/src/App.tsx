@@ -9,6 +9,7 @@ import StudentDashboard from './pages/StudentDashboard'
 import TutorDashboard from './pages/TutorDashboard'
 import TutorProfile from './pages/TutorProfile'
 import TutorSetup from './pages/TutorSetup'
+import GraphView from './pages/GraphView'
 
 function RootRedirect() {
   const { token, role, onboardingCompleto } = useAuthStore()
@@ -53,6 +54,11 @@ function AppShell() {
         <Route path="/tutor/:id" element={
           <ProtectedRoute>
             <TutorProfile />
+          </ProtectedRoute>
+        } />
+        <Route path="/grafo" element={
+          <ProtectedRoute role="ESTUDIANTE">
+            <GraphView />
           </ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
